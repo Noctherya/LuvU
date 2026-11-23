@@ -28,7 +28,7 @@ h1 { font-family: 'Caveat', cursive; font-size: 2.6rem; color: #9b6b7a; letter-s
 .fab-item { background: #fff; border: 1px solid #e8d5dc; padding: 12px 20px; border-radius: 30px; font-family: 'Cormorant Garamond', serif; font-size: 1rem; color: #9b6b7a; box-shadow: 0 4px 10px rgba(0,0,0,0.1); cursor: pointer; white-space: nowrap; text-align: left; }
 .fab-item:hover { background: #fdfaf2; }
 
-/* Envelopes & Overlays (Gekürzt für die Übersicht) */
+/* Envelopes & Overlays */
 .envelope-wrap { perspective: 900px; cursor: pointer; margin-bottom: 22px; }
 .envelope { position: relative; height: 140px; border-radius: 6px; background: linear-gradient(180deg, #f0e4e8 0%, #e8d5dc 100%); border: 1px solid #d8c2ca; box-shadow: 0 4px 14px rgba(120, 90, 100, 0.15); }
 .paper { position: absolute; left: 12px; right: 12px; top: 22px; height: 110px; background: #fdfaf2; border: 1px solid #e3d5cc; border-radius: 3px; z-index: 1; display: flex; align-items: center; justify-content: center; font-family: 'Caveat', cursive; font-size: 1.4rem; color: #b08090; }
