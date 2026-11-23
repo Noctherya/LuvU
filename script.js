@@ -184,7 +184,6 @@ async function loadLetters() {
     const wrap = document.createElement('div');
     wrap.className = 'envelope-wrap';
     
-    // NEU: Das Abzeichen (Badge) auf dem Umschlag
     let badgeHtml = '';
     if (currentRole === 'Aly') {
       if (letter.is_read) {
@@ -323,7 +322,6 @@ async function loadOurDay() {
 
   for (const date in groupedByDate) {
     const entries = groupedByDate[date];
-    const previewText = entries[0].text;
 
     const div = document.createElement('div');
     div.className = 'day-card';
@@ -349,9 +347,9 @@ async function loadOurDay() {
       document.getElementById('dayView').classList.add('open');
     };
 
+    // NEU: Nur noch das Datum im Kasten
     div.innerHTML = `
-      <div class="day-date">📅 ${date}</div>
-      <p>${previewText}</p>
+      <div class="day-date" style="margin-bottom: 0;">📅 ${date}</div>
     `;
     container.appendChild(div);
   }
