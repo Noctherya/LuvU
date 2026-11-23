@@ -197,17 +197,42 @@ async function loadLetters() {
   });
 }
 
+// HIER IST DIE EINZIGE ÄNDERUNG (Herz-Stapel statt Liste)
 async function loadSecrets() {
-  const container = document.getElementById('secretsList');
+  const container = document.getElementById('heartsStack');
   if(!container) return;
+  
   const { data, error } = await supabaseClient.from('secrets').select('*').neq('sender', currentRole).order('created_at', { ascending: false });
+  
   if (error) return;
   container.innerHTML = '';
-  data.forEach(secret => {
-    const div = document.createElement('div');
-    div.className = 'secret-text-card';
-    div.innerHTML = `<div class="secret-body" style="font-family:'Caveat'; font-size:1.5rem;">"${secret.text}"</div>`;
-    container.appendChild(div);
+  
+  data.forEach((secret, index) => {
+    const heart = document.createElement('div');
+    heart.className = 'secret-heart';
+    
+    const randomRotation = (Math.random() * 30) - 15;
+    const randomOffset = (Math.random() * 20) - 10;
+    heart.style.transform = `rotate(${randomRotation}deg) translateX(${randomOffset}px)`;
+    heart.style.zIndex = data.length - index;
+    
+    if (!secret.is_read) {
+      heart.classList.add('unread');
+    }
+
+    heart.innerHTML = '💌';
+
+    heart.onclick = async () => {
+      document.getElementById('secretBody').innerHTML = secret.text.replace(/\n/g, '<br>');
+      document.getElementById('secretView').classList.add('open');
+      
+      if (!secret.is_read) {
+        await supabaseClient.from('secrets').update({ is_read: true }).eq('id', secret.id);
+        heart.classList.remove('unread');
+      }
+    };
+
+    container.appendChild(heart);
   });
 }
 
