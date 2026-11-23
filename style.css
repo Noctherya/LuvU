@@ -102,4 +102,85 @@ h1 { font-family: 'Caveat', cursive; font-size: 2.6rem; color: #9b6b7a; letter-s
   width: 100%;
   max-width: 300px;
   cursor: pointer;
-  box-shadow: 0 
+  box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+  transition: all 0.2s ease;
+  text-align: left;
+}
+
+.read-secret-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 10px rgba(155, 107, 122, 0.15);
+  background: #fdfaf2;
+}
+
+/* Our Day Karten (Übersicht) */
+.day-card {
+  background: #fff;
+  border-radius: 16px;
+  padding: 20px;
+  margin-bottom: 15px;
+  text-align: center;
+  border: 1px solid #e8d5dc;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  box-shadow: 0 4px 10px rgba(155, 107, 122, 0.08);
+}
+
+.day-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 20px rgba(155, 107, 122, 0.2);
+}
+
+.day-card p {
+  font-family: 'Caveat', cursive; 
+  font-size: 1.4rem; 
+  color: #7a5a66;
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.day-date {
+  font-family: 'Cormorant Garamond', serif;
+  font-weight: 600;
+  font-size: 1.1rem;
+  color: #9b6b7a;
+  margin-bottom: 8px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+/* Our Day Detail-Ansicht (Overlay) */
+.day-images-grid {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-top: 15px;
+}
+
+.day-img-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: 1;
+  min-width: 120px;
+}
+
+.day-image-detail {
+  width: 100%;
+  max-height: 250px;
+  object-fit: cover;
+  border-radius: 8px;
+  border: 2px solid #fdfaf2;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+}
+
+.day-img-sender {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 0.9rem;
+  color: #8a9bb0;
+  margin-top: 5px;
+  font-style: italic;
+}
