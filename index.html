@@ -3,44 +3,85 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>LuvU Test</title>
+  <title>LuvU 💌</title>
+  
   <link rel="stylesheet" href="style.css">
+  <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;600&family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
+  <link rel="manifest" href="manifest.json">
+  
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
 
-  <!-- Der Login-Bildschirm -->
-  <div id="login-screen" class="login-container">
-    <h1>LuvU 💌</h1>
-    <p class="subtitle">Test-Modus</p>
-    <button onclick="fakeLogin()" class="nav-btn active" style="width: 100%; margin-top: 10px;">Einloggen (Test)</button>
+<!-- LOGIN -->
+<div id="login-screen" class="login-container">
+  <h1>Welcome to LuvU 💌</h1>
+  <p class="subtitle">Who are you?</p>
+  <div style="display: flex; gap: 10px; justify-content: center; margin-bottom: 20px;">
+    <button id="btn-aly" class="nav-btn active" onclick="setRole('Aly')" style="flex: 1;">👩 Aly</button>
+    <button id="btn-sebo" class="nav-btn" onclick="setRole('Sebo')" style="flex: 1;">👨 Sebo</button>
+  </div>
+  <div class="login-box" id="login-form" style="display: none;">
+    <input type="email" id="email-input" placeholder="Your Email" required>
+    <input type="password" id="password-input" placeholder="Your Password" required>
+    <button id="login-btn" class="nav-btn active" style="width: 100%; margin-top: 10px;">Log In</button>
+    <button id="signup-btn" class="nav-btn" style="width: 100%; margin-top: 10px;">Sign Up</button>
+  </div>
+  <p id="login-message" style="color: #9b6b7a; margin-top: 15px; font-size: 0.9rem;"></p>
+</div>
+
+<!-- APP -->
+<div id="app-screen" class="app" style="display: none;">
+  <div class="nav-tabs">
+    <button class="nav-btn active" onclick="switchTab('letters')">💌 Letters</button>
+    <button class="nav-btn" onclick="switchTab('myday')">☀️ My Day</button>
+    <button class="nav-btn" onclick="switchTab('secrets')">✨ For You</button>
+    <button class="nav-btn" onclick="switchTab('us')">📸 Us</button>
+    <button class="nav-btn" onclick="logout()">🚪 Logout</button>
   </div>
 
-  <!-- Die App -->
-  <div id="app-screen" class="app" style="display: none;">
-    <div class="nav-tabs">
-      <button class="nav-btn active" onclick="switchTab('letters')">💌 Letters</button>
-      <button class="nav-btn" onclick="switchTab('us')">📸 Us</button>
-    </div>
+  <div id="page-letters" class="page active">
+    <h1>for you 💌</h1>
+    <p class="subtitle">a few letters from me</p>
+    <div class="envelopes" id="envelopes"></div>
+  </div>
 
-    <div id="page-letters" class="page active">
-      <h1>Briefe</h1>
-      <p>Hier sind die Briefe.</p>
-    </div>
+  <div id="page-myday" class="page">
+    <h1>my day ☀️</h1>
+    <p class="subtitle">click on a day to see our moments</p>
+    <div class="days-list" id="daysList"></div>
+  </div>
 
-    <div id="page-us" class="page">
-      <h1>Us</h1>
-      <p>Hier sind die Bilder.</p>
-    </div>
+  <div id="page-secrets" class="page">
+    <h1>little secrets 🩵</h1>
+    <p class="subtitle">tap the pile to reveal something</p>
+    <div class="hearts-container" id="heartsContainer"></div>
+  </div>
 
-    <!-- Das Plus-Menü -->
-    <div class="fab-container" style="z-index: 9999;">
-      <div class="fab-menu" id="fab-menu">
-        <button class="fab-item" onclick="alert('Us Moment geklickt!')">📸 Us Moment</button>
-      </div>
-      <button class="fab-btn" id="fab-btn" onclick="toggleFab()">+</button>
+  <div id="page-us" class="page">
+    <h1>us 📸</h1>
+    <p class="subtitle">our little moments</p>
+    <div class="pinboard-container">
+      <div class="string-lights"></div>
+      <div class="pinboard" id="pinboard"></div>
     </div>
   </div>
+
+  <div class="fab-container" id="fab-container" style="z-index: 9999;">
+    <div class="fab-menu" id="fab-menu"></div>
+    <button class="fab-btn" id="fab-btn" onclick="toggleFab()">+</button>
+  </div>
+
+  <!-- Overlays -->
+  <div class="letter-view" id="letterView">
+    <div class="letter-card">
+      <button class="close-btn" id="closeBtn" onclick="document.getElementById('letterView').classList.remove('open')">✕</button>
+      <h2 id="letterTitle"></h2>
+      <div class="letter-media" id="letterMedia"></div>
+      <div class="letter-body" id="letterBody"></div>
+    </div>
+  </div>
+</div>
 
   <script src="script.js"></script>
 </body>
