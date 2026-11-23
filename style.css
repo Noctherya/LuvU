@@ -184,3 +184,13 @@ h1 { font-family: 'Caveat', cursive; font-size: 2.6rem; color: #9b6b7a; letter-s
   margin-top: 5px;
   font-style: italic;
 }
+
+/* NEU: Text direkt unter dem jeweiligen Bild */
+.day-img-text {
+  font-family: 'Caveat', cursive;
+  font-size: 1.2rem;
+  color: #4a4048;
+  text-align: center;
+  margin-top: 5px;
+  line-height: 1.3;
+}
