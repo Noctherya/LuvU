@@ -3,7 +3,7 @@ const supabaseUrl = 'https://gessrezpwqmdajkfxgjk.supabase.co';
 const supabaseKey = 'sb_publishable_NlYgPe1Ii47nl0-anpcnSA_75ae85U9';
 const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
 
-// 2. DEINE BRIEFE (Komplett)
+// 2. DEINE BRIEFE (Alle!)
 const letters = [
   { title: "you first open this app", body: "hey baby,\n\nif you're reading this, you just opened our little app for the first time. i built it for you – with love, a little bit of chaos, and a whole lot of me in it. I thought if you could do it, why not me? Soo this is what I came up with randomly at work and I personally love that idea.\n\nlook around. there are letters here for you. for every moment you need me. Bare with me but I'm really trying my best over here. Just overlook any bugs you might find throughout this whole thing - upsi.\n\ni love you.", media: [] },
   { title: "when you can't sleep", body: "hey baby,\n\nif you're reading this, it means the night is too long and your head is too loud. i wish i could be there right now. i would wrap my arms around you, pull you close, and just hold you until you fall asleep.\n\nsince i can't do that right now, i want you to close your eyes for a second. imagine i'm right there next to you. imagine my hand on your chest, feeling your heartbeat slow down. imagine me whispering that everything is going to be okay, because it is. you are safe. you are loved. \n\nstop thinking about tomorrow. just breathe. i'm right here, even if it's just in my thoughts. i love you. sleep well, my love.", media: [] },
@@ -33,8 +33,8 @@ const letters = [
 
 // 3. Start der App
 document.addEventListener('DOMContentLoaded', () => {
+  // Briefe rendern
   const envelopeContainer = document.getElementById('envelopes');
-  
   if (envelopeContainer) {
     envelopeContainer.innerHTML = '';
     letters.forEach((letter, i) => {
@@ -60,5 +60,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
   document.getElementById('closeBtn').addEventListener('click', () => {
     document.getElementById('letterView').classList.remove('open');
+  });
+
+  // --- DER PLUS BUTTON ---
+  const fab = document.createElement('div');
+  fab.innerHTML = '+';
+  fab.style.cssText = 'position:fixed; bottom:20px; right:20px; width:60px; height:60px; background:#9b6b7a; color:white; border-radius:50%; display:flex; justify-content:center; align-items:center; font-size:35px; box-shadow:0 4px 10px rgba(0,0,0,0.3); cursor:pointer; z-index:1000;';
+  document.body.appendChild(fab);
+
+  fab.addEventListener('click', () => {
+    alert("Hier kommt gleich das Menü zum Hochladen hin!");
   });
 });
