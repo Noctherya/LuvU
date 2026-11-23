@@ -7,16 +7,13 @@ let currentRole = null;
 
 // 2. TAB WECHSEL (Jetzt mit sicherer ID-Zuweisung)
 window.switchTab = (tabName) => {
-  // Alle Seiten ausblenden
   document.querySelectorAll('.page').forEach(page => page.classList.remove('active'));
   
-  // Alle Tab-Buttons auf "nicht aktiv" setzen
   document.getElementById('tab-letters').classList.remove('active');
   document.getElementById('tab-myday').classList.remove('active');
   document.getElementById('tab-secrets').classList.remove('active');
   document.getElementById('tab-us').classList.remove('active');
 
-  // Die richtige Seite anzeigen und den richtigen Button markieren
   if (tabName === 'letters') {
     document.getElementById('page-letters').classList.add('active');
     document.getElementById('tab-letters').classList.add('active');
@@ -31,7 +28,6 @@ window.switchTab = (tabName) => {
     document.getElementById('tab-us').classList.add('active');
   }
 
-  // Daten laden
   if (tabName === 'letters') loadLetters();
   if (tabName === 'secrets') loadSecrets();
   if (tabName === 'us') loadUs();
@@ -88,7 +84,6 @@ function showApp() {
     `;
   }
   
-  // Daten laden beim Start
   loadLetters();
   loadSecrets();
   loadUs();
@@ -137,7 +132,7 @@ async function uploadImage(file) {
   return publicUrl.publicUrl;
 }
 
-// 7. SPEICHERN (LETTER, US, OURDAY, SECRET)
+// 7. SPEICHERN
 window.submitLetter = async () => {
   const title = document.getElementById('new-letter-title').value;
   const body = document.getElementById('new-letter-body').value;
@@ -178,43 +173,63 @@ window.submitSecret = async () => {
 };
 
 // 8. LADEN & ANZEIGEN
+// HIER IST DIE ÄNDERUNG FÜR DIE BRIEFE
 async function loadLetters() {
   const container = document.getElementById('envelopes');
   if(!container) return;
   const { data, error } = await supabaseClient.from('letters').select('*').order('created_at', { ascending: false });
   if (error) return;
   container.innerHTML = '';
+  
   data.forEach(letter => {
     const wrap = document.createElement('div');
     wrap.className = 'envelope-wrap';
-    wrap.onclick = () => {
+    wrap.onclick = async () => {
       document.getElementById('letterTitle').textContent = letter.title;
       document.getElementById('letterBody').textContent = letter.body;
+      
+      // NEU: Status-Anzeige
+      const statusDiv = document.getElementById('letterStatus');
+      if (currentRole === 'Aly') {
+        if (letter.is_read) {
+          statusDiv.innerHTML = '✓✓ Read by Sebo';
+          statusDiv.style.color = '#4a90e2';
+        } else {
+          statusDiv.innerHTML = '✓ Delivered';
+          statusDiv.style.color = '#aaa';
+        }
+      } else {
+        statusDiv.innerHTML = '';
+      }
+
       document.getElementById('letterView').classList.add('open');
+      
+      // NEU: Als gelesen markieren, wenn Sebo draufklickt
+      if (currentRole === 'Sebo' && !letter.is_read) {
+        await supabaseClient.from('letters').update({ is_read: true }).eq('id', letter.id);
+        loadLetters();
+      }
     };
+    
     wrap.innerHTML = `<div class="envelope"><div class="paper">💌</div><div class="flap"></div><div class="pocket"></div><div class="seal">🐧</div><div class="envelope-title">${letter.title}</div></div>`;
     container.appendChild(wrap);
   });
 }
 
-// HIER IST DIE NEUE LOGIK FÜR DIE HERZEN & GELESENEN BRIEFE
 async function loadSecrets() {
   const stackContainer = document.getElementById('heartsStack');
   const readContainer = document.getElementById('readSecretsList');
   if(!stackContainer || !readContainer) return;
   
   const { data, error } = await supabaseClient.from('secrets').select('*').neq('sender', currentRole).order('created_at', { ascending: false });
-  
   if (error) return;
   
   stackContainer.innerHTML = '';
   readContainer.innerHTML = '';
   
-  // Wir teilen die Daten auf
   const unreadSecrets = data.filter(secret => !secret.is_read);
   const readSecrets = data.filter(secret => secret.is_read);
 
-  // 1. UNGELESENE HERZEN RENDERN (Der Stapel)
   unreadSecrets.forEach((secret, index) => {
     const heart = document.createElement('div');
     heart.className = 'secret-heart unread';
@@ -231,13 +246,12 @@ async function loadSecrets() {
       document.getElementById('secretView').classList.add('open');
       
       await supabaseClient.from('secrets').update({ is_read: true }).eq('id', secret.id);
-      loadSecrets(); // Seite neu laden, damit das Herz in die Schublade wandert
+      loadSecrets();
     };
 
     stackContainer.appendChild(heart);
   });
 
-  // 2. GELESENE BRIEFCHEN RENDERN (Die Schublade)
   if (readSecrets.length > 0) {
     const title = document.createElement('p');
     title.className = 'subtitle';
