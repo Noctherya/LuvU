@@ -10,6 +10,7 @@
 </head>
 <body>
   <div class="app">
+    <!-- Navigations-Leiste -->
     <div class="nav-tabs">
       <button class="nav-btn active" onclick="switchTab('letters')">💌 Letters</button>
       <button class="nav-btn" onclick="switchTab('myday')">☀️ My Day</button>
@@ -17,18 +18,21 @@
       <button class="nav-btn" onclick="switchTab('us')">📸 Us</button>
     </div>
 
+    <!-- SEITE 1: Briefe -->
     <div id="page-letters" class="page active">
       <h1>for you 💌</h1>
       <p class="subtitle">a few letters from me</p>
       <div class="envelopes" id="envelopes"></div>
     </div>
 
+    <!-- SEITE 2: My Day -->
     <div id="page-myday" class="page">
       <h1>my day ☀️</h1>
       <p class="subtitle">click on a day to see our moments</p>
       <div class="days-list" id="daysList"></div>
     </div>
 
+    <!-- SEITE 3: Secrets -->
     <div id="page-secrets" class="page secrets-page-theme">
       <h1>little secrets 🩵</h1>
       <p class="subtitle">tap the pile to reveal something</p>
@@ -39,6 +43,7 @@
       </div>
     </div>
 
+    <!-- SEITE 4: Us -->
     <div id="page-us" class="page">
       <h1>us 📸</h1>
       <p class="subtitle">our little moments</p>
@@ -48,6 +53,7 @@
       </div>
     </div>
 
+    <!-- Overlays -->
     <div class="letter-view" id="letterView">
       <div class="letter-card">
         <button class="close-btn" id="closeBtn">✕</button>
