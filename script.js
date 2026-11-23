@@ -183,21 +183,33 @@ async function loadLetters() {
   data.forEach(letter => {
     const wrap = document.createElement('div');
     wrap.className = 'envelope-wrap';
+    
+    // NEU: Das Abzeichen (Badge) auf dem Umschlag
+    let badgeHtml = '';
+    if (currentRole === 'Aly') {
+      if (letter.is_read) {
+        badgeHtml = `<div class="envelope-badge read">✓✓ Read</div>`;
+      } else {
+        badgeHtml = `<div class="envelope-badge delivered">✓ Delivered</div>`;
+      }
+    } else if (currentRole === 'Sebo') {
+      if (letter.is_read) {
+        badgeHtml = `<div class="envelope-badge read">✓ Read</div>`;
+      } else {
+        badgeHtml = `<div class="envelope-badge new">✨ New</div>`;
+      }
+    }
+
     wrap.onclick = async () => {
       document.getElementById('letterTitle').textContent = letter.title;
       document.getElementById('letterBody').textContent = letter.body;
       
       const statusDiv = document.getElementById('letterStatus');
       if (currentRole === 'Aly') {
-        if (letter.is_read) {
-          statusDiv.innerHTML = '✓✓ Read by Sebo';
-          statusDiv.style.color = '#4a90e2';
-        } else {
-          statusDiv.innerHTML = '✓ Delivered';
-          statusDiv.style.color = '#aaa';
-        }
+        statusDiv.innerHTML = letter.is_read ? '✓✓ Read by Sebo' : '✓ Delivered';
+        statusDiv.style.color = letter.is_read ? '#4a90e2' : '#aaa';
       } else {
-        statusDiv.innerHTML = '';
+        statusDiv.innerHTML = ''; 
       }
 
       document.getElementById('letterView').classList.add('open');
@@ -208,7 +220,16 @@ async function loadLetters() {
       }
     };
     
-    wrap.innerHTML = `<div class="envelope"><div class="paper">💌</div><div class="flap"></div><div class="pocket"></div><div class="seal">🐧</div><div class="envelope-title">${letter.title}</div></div>`;
+    wrap.innerHTML = `
+      <div class="envelope">
+        <div class="paper">💌</div>
+        <div class="flap"></div>
+        <div class="pocket"></div>
+        <div class="seal">🐧</div>
+        <div class="envelope-title">${letter.title}</div>
+        ${badgeHtml}
+      </div>
+    `;
     container.appendChild(wrap);
   });
 }
@@ -292,7 +313,6 @@ async function loadOurDay() {
   if (error) return;
   container.innerHTML = '';
   
-  // Gruppierung nach Datum
   const groupedByDate = {};
   data.forEach(entry => {
     if (!groupedByDate[entry.date]) {
@@ -301,10 +321,9 @@ async function loadOurDay() {
     groupedByDate[entry.date].push(entry);
   });
 
-  // Karten für jedes Datum erstellen
   for (const date in groupedByDate) {
     const entries = groupedByDate[date];
-    const previewText = entries[0].text; // Vorschau-Text für die Karte
+    const previewText = entries[0].text;
 
     const div = document.createElement('div');
     div.className = 'day-card';
@@ -315,7 +334,6 @@ async function loadOurDay() {
       const imagesContainer = document.getElementById('dayViewImages');
       imagesContainer.innerHTML = '';
       
-      // Bilder, Name und Text werden hier zusammen geladen
       entries.forEach(entry => {
         const imgWrap = document.createElement('div');
         imgWrap.className = 'day-img-wrapper';
@@ -327,13 +345,10 @@ async function loadOurDay() {
         imagesContainer.appendChild(imgWrap);
       });
 
-      // Der große Text unten im Overlay wird geleert, da der Text jetzt bei den Bildern steht
       document.getElementById('dayViewText').textContent = ''; 
-
       document.getElementById('dayView').classList.add('open');
     };
 
-    // Die Karte in der Übersicht
     div.innerHTML = `
       <div class="day-date">📅 ${date}</div>
       <p>${previewText}</p>
