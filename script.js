@@ -5,33 +5,27 @@ const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 let currentRole = null; 
 
-// 2. KLICK-FUNKTIONEN (Sofort geladen)
+// 2. TAB WECHSEL (Sicher und ohne Fehler)
 window.switchTab = (tabName) => {
-  // Alle Seiten ausblenden
   document.querySelectorAll('.page').forEach(page => page.classList.remove('active'));
-  
-  // Alle Tab-Buttons (oben) auf "nicht aktiv" setzen
-  document.getElementById('tab-letters').classList.remove('active');
-  document.getElementById('tab-myday').classList.remove('active');
-  document.getElementById('tab-secrets').classList.remove('active');
-  document.getElementById('tab-us').classList.remove('active');
+  document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
 
-  // Die richtige Seite anzeigen und den richtigen Button markieren
   if (tabName === 'letters') {
     document.getElementById('page-letters').classList.add('active');
-    document.getElementById('tab-letters').classList.add('active');
+    document.querySelectorAll('.nav-btn')[0].classList.add('active');
   } else if (tabName === 'myday') {
     document.getElementById('page-myday').classList.add('active');
-    document.getElementById('tab-myday').classList.add('active');
+    document.querySelectorAll('.nav-btn')[1].classList.add('active');
   } else if (tabName === 'secrets') {
     document.getElementById('page-secrets').classList.add('active');
-    document.getElementById('tab-secrets').classList.add('active');
+    document.querySelectorAll('.nav-btn')[2].classList.add('active');
   } else if (tabName === 'us') {
     document.getElementById('page-us').classList.add('active');
-    document.getElementById('tab-us').classList.add('active');
+    document.querySelectorAll('.nav-btn')[3].classList.add('active');
   }
 };
 
+// 3. PLUS-BUTTON MENÜ
 window.toggleFab = () => {
   const menu = document.getElementById('fab-menu');
   const btn = document.getElementById('fab-btn');
@@ -41,12 +35,45 @@ window.toggleFab = () => {
   }
 };
 
+// 4. FORMULAR ÖFFNEN (Direkt über HTML)
 window.openAddModal = (type) => {
-  toggleFab();
-  alert('Hier öffnet sich bald das Formular für: ' + type);
+  toggleFab(); // Menü schließen
+  
+  if (type === 'letter') {
+    document.getElementById('addLetterView').classList.add('open');
+  } else {
+    alert('Das Formular für ' + type + ' bauen wir als Nächstes!');
+  }
 };
 
-// 3. ROLLE AUSWÄHLEN
+// 5. BRIEF SPEICHERN
+window.submitLetter = async () => {
+  const title = document.getElementById('new-letter-title').value;
+  const body = document.getElementById('new-letter-body').value;
+  
+  if (!title || !body) {
+    alert("Bitte fülle Titel und Text aus!");
+    return;
+  }
+
+  const { data, error } = await supabaseClient
+    .from('letters')
+    .insert([{ title: title, body: body, sender: 'Aly' }]);
+
+  if (error) {
+    alert("Fehler beim Speichern: " + error.message);
+  } else {
+    alert("Brief erfolgreich gespeichert! 💌");
+    document.getElementById('addLetterView').classList.remove('open');
+    document.getElementById('new-letter-title').value = '';
+    document.getElementById('new-letter-body').value = '';
+    
+    // NEU: Wir laden die Briefe sofort neu (die Funktion bauen wir gleich)
+    loadLetters(); 
+  }
+};
+
+// 6. ROLLE AUSWÄHLEN & APP ANZEIGEN
 window.setRole = (role) => {
   currentRole = role;
   localStorage.setItem('luvu_role', role);
@@ -56,14 +83,6 @@ window.setRole = (role) => {
   document.getElementById('btn-' + role.toLowerCase()).classList.add('active');
 };
 
-// 4. LOGOUT
-window.logout = async () => {
-  localStorage.removeItem('luvu_role');
-  await supabaseClient.auth.signOut();
-  window.location.reload();
-};
-
-// 5. APP ANZEIGEN (Rollenbasierte Buttons)
 function showApp() {
   document.getElementById('login-screen').style.display = 'none';
   document.getElementById('app-screen').style.display = 'block';
@@ -87,9 +106,62 @@ function showApp() {
       <button class="fab-item" onclick="openAddModal('secret')">💌 Secret</button>
     `;
   }
+
+  // Direkt beim Einloggen die Briefe laden
+  loadLetters();
 }
 
-// 6. LOGIN EVENTS
+// 7. BRIEFE AUS SUPABASE LADEN
+async function loadLetters() {
+  const envelopeContainer = document.getElementById('envelopes');
+  if (!envelopeContainer) return;
+
+  // Lade alle Briefe aus der Tabelle
+  const { data: letters, error } = await supabaseClient
+    .from('letters')
+    .select('*')
+    .order('created_at', { ascending: false }); // Neueste zuerst
+
+  if (error) {
+    console.error("Fehler beim Laden der Briefe:", error);
+    return;
+  }
+
+  envelopeContainer.innerHTML = '';
+
+  // Baue für jeden Brief einen Umschlag
+  letters.forEach((letter, i) => {
+    const wrap = document.createElement('div');
+    wrap.className = 'envelope-wrap';
+    
+    // Das Klick-Event für den Umschlag
+    wrap.onclick = () => {
+      document.getElementById('letterTitle').textContent = letter.title;
+      document.getElementById('letterBody').textContent = letter.body;
+      document.getElementById('letterMedia').innerHTML = '';
+      document.getElementById('letterView').classList.add('open');
+    };
+
+    wrap.innerHTML = `
+      <div class="envelope">
+        <div class="paper">💌</div>
+        <div class="flap"></div>
+        <div class="pocket"></div>
+        <div class="seal">🐧</div>
+        <div class="envelope-title">${letter.title}</div>
+      </div>
+    `;
+    envelopeContainer.appendChild(wrap);
+  });
+}
+
+// 8. LOGIN EVENTS
+window.logout = async () => {
+  localStorage.removeItem('luvu_role');
+  await supabaseClient.auth.signOut();
+  window.location.reload();
+};
+
 document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('login-btn').addEventListener('click', async () => {
     const email = document.getElementById('email-input').value;
