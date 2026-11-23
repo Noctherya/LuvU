@@ -197,28 +197,32 @@ async function loadLetters() {
   });
 }
 
-// HIER IST DIE EINZIGE ÄNDERUNG (Herz-Stapel statt Liste)
+// HIER IST DIE NEUE LOGIK FÜR DIE HERZEN & GELESENEN BRIEFE
 async function loadSecrets() {
-  const container = document.getElementById('heartsStack');
-  if(!container) return;
+  const stackContainer = document.getElementById('heartsStack');
+  const readContainer = document.getElementById('readSecretsList');
+  if(!stackContainer || !readContainer) return;
   
   const { data, error } = await supabaseClient.from('secrets').select('*').neq('sender', currentRole).order('created_at', { ascending: false });
   
   if (error) return;
-  container.innerHTML = '';
   
-  data.forEach((secret, index) => {
+  stackContainer.innerHTML = '';
+  readContainer.innerHTML = '';
+  
+  // Wir teilen die Daten auf
+  const unreadSecrets = data.filter(secret => !secret.is_read);
+  const readSecrets = data.filter(secret => secret.is_read);
+
+  // 1. UNGELESENE HERZEN RENDERN (Der Stapel)
+  unreadSecrets.forEach((secret, index) => {
     const heart = document.createElement('div');
-    heart.className = 'secret-heart';
+    heart.className = 'secret-heart unread';
     
     const randomRotation = (Math.random() * 30) - 15;
     const randomOffset = (Math.random() * 20) - 10;
     heart.style.transform = `rotate(${randomRotation}deg) translateX(${randomOffset}px)`;
-    heart.style.zIndex = data.length - index;
-    
-    if (!secret.is_read) {
-      heart.classList.add('unread');
-    }
+    heart.style.zIndex = unreadSecrets.length - index;
 
     heart.innerHTML = '💌';
 
@@ -226,14 +230,33 @@ async function loadSecrets() {
       document.getElementById('secretBody').innerHTML = secret.text.replace(/\n/g, '<br>');
       document.getElementById('secretView').classList.add('open');
       
-      if (!secret.is_read) {
-        await supabaseClient.from('secrets').update({ is_read: true }).eq('id', secret.id);
-        heart.classList.remove('unread');
-      }
+      await supabaseClient.from('secrets').update({ is_read: true }).eq('id', secret.id);
+      loadSecrets(); // Seite neu laden, damit das Herz in die Schublade wandert
     };
 
-    container.appendChild(heart);
+    stackContainer.appendChild(heart);
   });
+
+  // 2. GELESENE BRIEFCHEN RENDERN (Die Schublade)
+  if (readSecrets.length > 0) {
+    const title = document.createElement('p');
+    title.className = 'subtitle';
+    title.style.marginTop = '40px';
+    title.style.marginBottom = '15px';
+    title.textContent = 'past secrets';
+    readContainer.appendChild(title);
+
+    readSecrets.forEach(secret => {
+      const div = document.createElement('div');
+      div.className = 'read-secret-card';
+      div.onclick = () => {
+        document.getElementById('secretBody').innerHTML = secret.text.replace(/\n/g, '<br>');
+        document.getElementById('secretView').classList.add('open');
+      };
+      div.innerHTML = `<span style="font-family: 'Caveat', cursive; font-size: 1.4rem; color: #9b6b7a;">💌 A little secret</span> <span style="font-size: 0.9rem; color: #aaa;">(click to read)</span>`;
+      readContainer.appendChild(div);
+    });
+  }
 }
 
 async function loadUs() {
