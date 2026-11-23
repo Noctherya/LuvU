@@ -102,3 +102,15 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 });
+// --- SUPABASE VERBINDUNG ---
+const supabaseUrl = 'https://gessrezpwqmdajkfxgjk.supabase.co';
+const supabaseKey = 'sb_publishable_NlYgPe1Ii47nl0-anpcnSA_75ae85U9';
+const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+
+// --- UPLOAD LOGIK ---
+// Hier kommen die Funktionen rein, die ausgeführt werden, wenn man im Menü auf einen Button klickt.
+
+window.openUpload = function(type) {
+  // Wir bauen das Formular später hier rein.
+  alert("Hier öffnet sich gleich das Formular für: " + type);
+};
