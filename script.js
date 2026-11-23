@@ -304,33 +304,39 @@ async function loadOurDay() {
   // Karten für jedes Datum erstellen
   for (const date in groupedByDate) {
     const entries = groupedByDate[date];
-    const firstText = entries[0].text;
+    const previewText = entries[0].text; // Vorschau-Text für die Karte
 
     const div = document.createElement('div');
     div.className = 'day-card';
+    
     div.onclick = () => {
       document.getElementById('dayViewDate').textContent = `📅 ${date}`;
-      document.getElementById('dayViewText').textContent = firstText;
       
       const imagesContainer = document.getElementById('dayViewImages');
       imagesContainer.innerHTML = '';
       
+      // Bilder, Name und Text werden hier zusammen geladen
       entries.forEach(entry => {
         const imgWrap = document.createElement('div');
         imgWrap.className = 'day-img-wrapper';
         imgWrap.innerHTML = `
           <img src="${entry.image_url}" class="day-image-detail">
           <span class="day-img-sender">${entry.sender}</span>
+          <p class="day-img-text">${entry.text}</p>
         `;
         imagesContainer.appendChild(imgWrap);
       });
 
+      // Der große Text unten im Overlay wird geleert, da der Text jetzt bei den Bildern steht
+      document.getElementById('dayViewText').textContent = ''; 
+
       document.getElementById('dayView').classList.add('open');
     };
 
+    // Die Karte in der Übersicht
     div.innerHTML = `
       <div class="day-date">📅 ${date}</div>
-      <p style="font-family: 'Caveat', cursive; font-size: 1.3rem; color: #7a5a66;">${firstText}</p>
+      <p>${previewText}</p>
     `;
     container.appendChild(div);
   }
