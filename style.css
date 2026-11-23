@@ -51,7 +51,7 @@ h1 { font-family: 'Caveat', cursive; font-size: 2.6rem; color: #9b6b7a; letter-s
 .day-card { background: #fff; border-radius: 12px; padding: 15px; margin-bottom: 20px; text-align: left; border: 1px solid #e8d5dc; }
 .day-image { width: 100%; border-radius: 8px; margin: 10px 0; }
 
-/* NEU: Der wilde Herz-Stapel für Secrets */
+/* Der wilde Herz-Stapel für ungelesene Secrets */
 .hearts-stack {
   display: flex;
   flex-wrap: wrap;
@@ -60,7 +60,7 @@ h1 { font-family: 'Caveat', cursive; font-size: 2.6rem; color: #9b6b7a; letter-s
   gap: 15px;
   margin-top: 20px;
   padding: 20px;
-  min-height: 300px;
+  min-height: 200px;
   background: rgba(255, 255, 255, 0.3);
   border-radius: 20px;
   border: 1px dashed #e8d5dc;
@@ -88,4 +88,31 @@ h1 { font-family: 'Caveat', cursive; font-size: 2.6rem; color: #9b6b7a; letter-s
   0% { transform: scale(1) rotate(0deg); }
   50% { transform: scale(1.1) rotate(5deg); }
   100% { transform: scale(1) rotate(0deg); }
+}
+
+/* Gelesene Secrets (Die Schublade unter dem Haufen) */
+.read-secrets-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.read-secret-card {
+  background: #fff;
+  border: 1px solid #e8d5dc;
+  border-radius: 12px;
+  padding: 12px 20px;
+  width: 100%;
+  max-width: 300px;
+  cursor: pointer;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+  transition: all 0.2s ease;
+  text-align: left;
+}
+
+.read-secret-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 10px rgba(155, 107, 122, 0.15);
+  background: #fdfaf2;
 }
