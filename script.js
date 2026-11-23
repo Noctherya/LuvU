@@ -5,7 +5,7 @@ const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 let currentRole = null; 
 
-// 2. TAB WECHSEL (Jetzt mit sicherer ID-Zuweisung)
+// 2. TAB WECHSEL
 window.switchTab = (tabName) => {
   document.querySelectorAll('.page').forEach(page => page.classList.remove('active'));
   
@@ -173,7 +173,6 @@ window.submitSecret = async () => {
 };
 
 // 8. LADEN & ANZEIGEN
-// HIER IST DIE ÄNDERUNG FÜR DIE BRIEFE
 async function loadLetters() {
   const container = document.getElementById('envelopes');
   if(!container) return;
@@ -188,7 +187,6 @@ async function loadLetters() {
       document.getElementById('letterTitle').textContent = letter.title;
       document.getElementById('letterBody').textContent = letter.body;
       
-      // NEU: Status-Anzeige
       const statusDiv = document.getElementById('letterStatus');
       if (currentRole === 'Aly') {
         if (letter.is_read) {
@@ -204,7 +202,6 @@ async function loadLetters() {
 
       document.getElementById('letterView').classList.add('open');
       
-      // NEU: Als gelesen markieren, wenn Sebo draufklickt
       if (currentRole === 'Sebo' && !letter.is_read) {
         await supabaseClient.from('letters').update({ is_read: true }).eq('id', letter.id);
         loadLetters();
@@ -290,13 +287,51 @@ async function loadUs() {
 async function loadOurDay() {
   const container = document.getElementById('daysList');
   if(!container) return;
+  
   const { data, error } = await supabaseClient.from('our_day').select('*').order('date', { ascending: false });
   if (error) return;
   container.innerHTML = '';
+  
+  // Gruppierung nach Datum
+  const groupedByDate = {};
   data.forEach(entry => {
+    if (!groupedByDate[entry.date]) {
+      groupedByDate[entry.date] = [];
+    }
+    groupedByDate[entry.date].push(entry);
+  });
+
+  // Karten für jedes Datum erstellen
+  for (const date in groupedByDate) {
+    const entries = groupedByDate[date];
+    const firstText = entries[0].text;
+
     const div = document.createElement('div');
     div.className = 'day-card';
-    div.innerHTML = `<div class="day-date">📅 ${entry.date} - ${entry.sender}</div><img src="${entry.image_url}" class="day-image"><p>${entry.text}</p>`;
+    div.onclick = () => {
+      document.getElementById('dayViewDate').textContent = `📅 ${date}`;
+      document.getElementById('dayViewText').textContent = firstText;
+      
+      const imagesContainer = document.getElementById('dayViewImages');
+      imagesContainer.innerHTML = '';
+      
+      entries.forEach(entry => {
+        const imgWrap = document.createElement('div');
+        imgWrap.className = 'day-img-wrapper';
+        imgWrap.innerHTML = `
+          <img src="${entry.image_url}" class="day-image-detail">
+          <span class="day-img-sender">${entry.sender}</span>
+        `;
+        imagesContainer.appendChild(imgWrap);
+      });
+
+      document.getElementById('dayView').classList.add('open');
+    };
+
+    div.innerHTML = `
+      <div class="day-date">📅 ${date}</div>
+      <p style="font-family: 'Caveat', cursive; font-size: 1.3rem; color: #7a5a66;">${firstText}</p>
+    `;
     container.appendChild(div);
-  });
+  }
 }
