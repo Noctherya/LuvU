@@ -79,7 +79,6 @@
     <div class="letter-card">
       <button class="close-btn" onclick="document.getElementById('letterView').classList.remove('open')">✕</button>
       <h2 id="letterTitle"></h2>
-      <!-- NEU: Die Status-Anzeige -->
       <div id="letterStatus" style="font-size: 0.9rem; color: #aaa; margin-top: -10px; margin-bottom: 15px;"></div>
       <div class="letter-media" id="letterMedia"></div>
       <div class="letter-body" id="letterBody"></div>
@@ -119,6 +118,16 @@
     </div>
   </div>
 
+  <!-- Our Day Detail-Ansicht (Overlay) -->
+  <div class="letter-view" id="dayView">
+    <div class="letter-card" style="max-width: 420px;">
+      <button class="close-btn" onclick="document.getElementById('dayView').classList.remove('open')">✕</button>
+      <h2 id="dayViewDate" style="color: #9b6b7a; margin-bottom: 15px;"></h2>
+      <div class="day-images-grid" id="dayViewImages"></div>
+      <div class="letter-body" id="dayViewText" style="margin-top: 20px; text-align: center; font-size: 1.3rem;"></div>
+    </div>
+  </div>
+
   <!-- Secret hinzufügen -->
   <div class="letter-view" id="addSecretView">
     <div class="letter-card">
@@ -138,7 +147,7 @@
     </div>
   </div>
 
-</div>
+</div> <!-- Ende von app-screen -->
 
   <script src="script.js"></script>
 </body>
