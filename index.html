@@ -53,13 +53,10 @@
     <div class="days-list" id="daysList"></div>
   </div>
 
-  <!-- HIER IST DIE ÄNDERUNG 1: Der Herz-Stapel und die Schublade für Gelesenes -->
   <div id="page-secrets" class="page">
     <h1>little secrets 🩵</h1>
     <p class="subtitle">a little pile of hearts for you</p>
-    
     <div class="hearts-stack" id="heartsStack"></div>
-    
     <div class="read-secrets-container" id="readSecretsList"></div>
   </div>
 
@@ -82,6 +79,8 @@
     <div class="letter-card">
       <button class="close-btn" onclick="document.getElementById('letterView').classList.remove('open')">✕</button>
       <h2 id="letterTitle"></h2>
+      <!-- NEU: Die Status-Anzeige -->
+      <div id="letterStatus" style="font-size: 0.9rem; color: #aaa; margin-top: -10px; margin-bottom: 15px;"></div>
       <div class="letter-media" id="letterMedia"></div>
       <div class="letter-body" id="letterBody"></div>
     </div>
@@ -98,7 +97,7 @@
     </div>
   </div>
 
-  <!-- Us Moment hinzufügen (Nur Bild) -->
+  <!-- Us Moment hinzufügen -->
   <div class="letter-view" id="addUsView">
     <div class="letter-card">
       <button class="close-btn" onclick="document.getElementById('addUsView').classList.remove('open')">✕</button>
@@ -108,7 +107,7 @@
     </div>
   </div>
 
-  <!-- Our Day hinzufügen (Datum, Bild, Text) -->
+  <!-- Our Day hinzufügen -->
   <div class="letter-view" id="addOurDayView">
     <div class="letter-card">
       <button class="close-btn" onclick="document.getElementById('addOurDayView').classList.remove('open')">✕</button>
@@ -120,7 +119,7 @@
     </div>
   </div>
 
-  <!-- Secret hinzufügen (Nur Text) -->
+  <!-- Secret hinzufügen -->
   <div class="letter-view" id="addSecretView">
     <div class="letter-card">
       <button class="close-btn" onclick="document.getElementById('addSecretView').classList.remove('open')">✕</button>
@@ -130,7 +129,7 @@
     </div>
   </div>
 
-  <!-- HIER IST DIE ÄNDERUNG 2: Das neue Overlay für das Briefchen -->
+  <!-- Secret lesen -->
   <div class="letter-view" id="secretView">
     <div class="letter-card" style="background: #fff5f7; border-color: #f4d5de;">
       <button class="close-btn" onclick="document.getElementById('secretView').classList.remove('open')">✕</button>
@@ -139,7 +138,7 @@
     </div>
   </div>
 
-</div> <!-- Ende von app-screen -->
+</div>
 
   <script src="script.js"></script>
 </body>
