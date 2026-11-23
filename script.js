@@ -1,24 +1,41 @@
-// 1. SUPABASE
+// 1. SUPABASE VERBINDUNG
 const SUPABASE_URL = 'https://gessrezpwqmdajkfxgjk.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_NlYgPe1Ii47nl0-anpcnSA_75ae85U9';
 const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
 let currentRole = null; 
 
-// 2. TAB WECHSEL
+// 2. TAB WECHSEL (Jetzt mit sicherer ID-Zuweisung)
 window.switchTab = (tabName) => {
+  // Alle Seiten ausblenden
   document.querySelectorAll('.page').forEach(page => page.classList.remove('active'));
-  document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
   
-  if (tabName === 'letters') { document.getElementById('page-letters').classList.add('active'); document.querySelectorAll('.nav-btn')[0].classList.add('active'); }
-  else if (tabName === 'myday') { document.getElementById('page-myday').classList.add('active'); document.querySelectorAll('.nav-btn')[1].classList.add('active'); }
-  else if (tabName === 'secrets') { document.getElementById('page-secrets').classList.add('active'); document.querySelectorAll('.nav-btn')[2].classList.add('active'); }
-  else if (tabName === 'us') { document.getElementById('page-us').classList.add('active'); document.querySelectorAll('.nav-btn')[3].classList.add('active'); }
-  
-  // Hier laden wir später die Daten neu
-  if(tabName === 'letters') loadLetters();
-  if(tabName === 'secrets') loadSecrets();
-  if(tabName === 'us') loadUs();
-  if(tabName === 'myday') loadOurDay();
+  // Alle Tab-Buttons auf "nicht aktiv" setzen
+  document.getElementById('tab-letters').classList.remove('active');
+  document.getElementById('tab-myday').classList.remove('active');
+  document.getElementById('tab-secrets').classList.remove('active');
+  document.getElementById('tab-us').classList.remove('active');
+
+  // Die richtige Seite anzeigen und den richtigen Button markieren
+  if (tabName === 'letters') {
+    document.getElementById('page-letters').classList.add('active');
+    document.getElementById('tab-letters').classList.add('active');
+  } else if (tabName === 'myday') {
+    document.getElementById('page-myday').classList.add('active');
+    document.getElementById('tab-myday').classList.add('active');
+  } else if (tabName === 'secrets') {
+    document.getElementById('page-secrets').classList.add('active');
+    document.getElementById('tab-secrets').classList.add('active');
+  } else if (tabName === 'us') {
+    document.getElementById('page-us').classList.add('active');
+    document.getElementById('tab-us').classList.add('active');
+  }
+
+  // Daten laden
+  if (tabName === 'letters') loadLetters();
+  if (tabName === 'secrets') loadSecrets();
+  if (tabName === 'us') loadUs();
+  if (tabName === 'myday') loadOurDay();
 };
 
 // 3. FAB & FORMULARE ÖFFNEN
@@ -70,6 +87,8 @@ function showApp() {
       <button class="fab-item" onclick="openAddModal('secret')">💌 Secret</button>
     `;
   }
+  
+  // Daten laden beim Start
   loadLetters();
   loadSecrets();
   loadUs();
@@ -88,15 +107,22 @@ document.addEventListener('DOMContentLoaded', () => {
     const email = document.getElementById('email-input').value;
     const password = document.getElementById('password-input').value;
     const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
-    if (error) document.getElementById('login-message').textContent = error.message;
-    else showApp();
+    if (error) {
+      document.getElementById('login-message').textContent = error.message;
+    } else {
+      showApp();
+    }
   });
+
   document.getElementById('signup-btn').addEventListener('click', async () => {
     const email = document.getElementById('email-input').value;
     const password = document.getElementById('password-input').value;
     const { error } = await supabaseClient.auth.signUp({ email, password });
-    if (error) document.getElementById('login-message').textContent = error.message;
-    else document.getElementById('login-message').textContent = 'Check your emails!';
+    if (error) {
+      document.getElementById('login-message').textContent = error.message;
+    } else {
+      document.getElementById('login-message').textContent = 'Check your emails for a confirmation link!';
+    }
   });
 });
 
@@ -151,9 +177,10 @@ window.submitSecret = async () => {
   else { document.getElementById('addSecretView').classList.remove('open'); loadSecrets(); }
 };
 
-// 8. LADEN & ANZEIGEN (Die Layouts)
+// 8. LADEN & ANZEIGEN
 async function loadLetters() {
   const container = document.getElementById('envelopes');
+  if(!container) return;
   const { data, error } = await supabaseClient.from('letters').select('*').order('created_at', { ascending: false });
   if (error) return;
   container.innerHTML = '';
@@ -172,7 +199,7 @@ async function loadLetters() {
 
 async function loadSecrets() {
   const container = document.getElementById('secretsList');
-  // Nur die Secrets des ANDEREN sehen
+  if(!container) return;
   const { data, error } = await supabaseClient.from('secrets').select('*').neq('sender', currentRole).order('created_at', { ascending: false });
   if (error) return;
   container.innerHTML = '';
@@ -186,6 +213,7 @@ async function loadSecrets() {
 
 async function loadUs() {
   const container = document.getElementById('pinboard');
+  if(!container) return;
   const { data, error } = await supabaseClient.from('us_moments').select('*').order('created_at', { ascending: false });
   if (error) return;
   container.innerHTML = '';
@@ -199,10 +227,10 @@ async function loadUs() {
 
 async function loadOurDay() {
   const container = document.getElementById('daysList');
+  if(!container) return;
   const { data, error } = await supabaseClient.from('our_day').select('*').order('date', { ascending: false });
   if (error) return;
   container.innerHTML = '';
-  // Hier müssten wir später nach Tagen gruppieren
   data.forEach(entry => {
     const div = document.createElement('div');
     div.className = 'day-card';
