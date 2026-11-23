@@ -32,14 +32,16 @@
 
 <!-- APP -->
 <div id="app-screen" class="app" style="display: none;">
+  
   <div class="nav-tabs">
     <button id="tab-letters" class="nav-btn active" onclick="switchTab('letters')">💌 Letters</button>
-    <button id="tab-myday" class="nav-btn" onclick="switchTab('myday')">☀️ My Day</button>
-    <button id="tab-secrets" class="nav-btn" onclick="switchTab('secrets')">✨ For You</button>
+    <button id="tab-myday" class="nav-btn" onclick="switchTab('myday')">☀️ Our Day</button>
+    <button id="tab-secrets" class="nav-btn" onclick="switchTab('secrets')">✨ Secrets</button>
     <button id="tab-us" class="nav-btn" onclick="switchTab('us')">📸 Us</button>
     <button class="nav-btn" onclick="logout()">🚪 Logout</button>
   </div>
 
+  <!-- SEITEN -->
   <div id="page-letters" class="page active">
     <h1>for you 💌</h1>
     <p class="subtitle">a few letters from me</p>
@@ -47,50 +49,79 @@
   </div>
 
   <div id="page-myday" class="page">
-    <h1>my day ☀️</h1>
-    <p class="subtitle">click on a day to see our moments</p>
+    <h1>our day ☀️</h1>
     <div class="days-list" id="daysList"></div>
   </div>
 
   <div id="page-secrets" class="page">
     <h1>little secrets 🩵</h1>
-    <p class="subtitle">tap the pile to reveal something</p>
-    <div class="hearts-container" id="heartsContainer"></div>
+    <div class="secrets-list" id="secretsList"></div>
   </div>
 
   <div id="page-us" class="page">
     <h1>us 📸</h1>
-    <p class="subtitle">our little moments</p>
     <div class="pinboard-container">
-      <div class="string-lights"></div>
       <div class="pinboard" id="pinboard"></div>
     </div>
   </div>
 
-  <!-- Plus Button (FAB) -->
+  <!-- FAB -->
   <div class="fab-container" id="fab-container" style="z-index: 9999;">
     <div class="fab-menu" id="fab-menu"></div>
     <button class="fab-btn" id="fab-btn" onclick="toggleFab()">+</button>
   </div>
 
-  <!-- Overlay: Briefe lesen -->
+  <!-- OVERLAYS -->
+  <!-- Brief lesen -->
   <div class="letter-view" id="letterView">
     <div class="letter-card">
-      <button class="close-btn" id="closeBtn" onclick="document.getElementById('letterView').classList.remove('open')">✕</button>
+      <button class="close-btn" onclick="document.getElementById('letterView').classList.remove('open')">✕</button>
       <h2 id="letterTitle"></h2>
       <div class="letter-media" id="letterMedia"></div>
       <div class="letter-body" id="letterBody"></div>
     </div>
   </div>
 
-  <!-- NEU: Overlay: Brief schreiben (nur für Aly) -->
+  <!-- Brief schreiben -->
   <div class="letter-view" id="addLetterView">
     <div class="letter-card">
       <button class="close-btn" onclick="document.getElementById('addLetterView').classList.remove('open')">✕</button>
       <h2>Write a new letter 💌</h2>
-      <input type="text" id="new-letter-title" placeholder="Title (e.g. when you miss me)" style="width: 100%; padding: 10px; margin-bottom: 15px; border: 1px solid #c9a9b4; border-radius: 8px; font-family: 'Cormorant Garamond', serif; font-size: 1rem; outline: none;">
-      <textarea id="new-letter-body" placeholder="Your message here..." style="width: 100%; height: 150px; padding: 10px; border: 1px solid #c9a9b4; border-radius: 8px; font-family: 'Caveat', cursive; font-size: 1.2rem; margin-bottom: 15px; outline: none;"></textarea>
+      <input type="text" id="new-letter-title" placeholder="Title" style="width: 100%; padding: 10px; margin-bottom: 15px; border: 1px solid #c9a9b4; border-radius: 8px;">
+      <textarea id="new-letter-body" placeholder="Your message..." style="width: 100%; height: 150px; padding: 10px; border: 1px solid #c9a9b4; border-radius: 8px; margin-bottom: 15px;"></textarea>
       <button onclick="submitLetter()" class="nav-btn active" style="width: 100%;">Send Letter</button>
+    </div>
+  </div>
+
+  <!-- Us Moment hinzufügen (Nur Bild) -->
+  <div class="letter-view" id="addUsView">
+    <div class="letter-card">
+      <button class="close-btn" onclick="document.getElementById('addUsView').classList.remove('open')">✕</button>
+      <h2>Add a Us Moment 📸</h2>
+      <input type="file" id="us-image" accept="image/*" style="margin-bottom: 15px;">
+      <button onclick="submitUsMoment()" class="nav-btn active" style="width: 100%;">Add to Pinboard</button>
+    </div>
+  </div>
+
+  <!-- Our Day hinzufügen (Datum, Bild, Text) -->
+  <div class="letter-view" id="addOurDayView">
+    <div class="letter-card">
+      <button class="close-btn" onclick="document.getElementById('addOurDayView').classList.remove('open')">✕</button>
+      <h2>Add to Our Day ☀️</h2>
+      <input type="date" id="ourday-date" style="width: 100%; padding: 10px; margin-bottom: 15px; border: 1px solid #c9a9b4; border-radius: 8px;">
+      <input type="file" id="ourday-image" accept="image/*" style="width: 100%; margin-bottom: 15px;">
+      <textarea id="ourday-text" placeholder="What happened today?" style="width: 100%; height: 100px; padding: 10px; border: 1px solid #c9a9b4; border-radius: 8px; margin-bottom: 15px;"></textarea>
+      <button onclick="submitOurDay()" class="nav-btn active" style="width: 100%;">Save Moment</button>
+    </div>
+  </div>
+
+  <!-- Secret hinzufügen (Nur Text) -->
+  <div class="letter-view" id="addSecretView">
+    <div class="letter-card">
+      <button class="close-btn" onclick="document.getElementById('addSecretView').classList.remove('open')">✕</button>
+      <h2>Write a Secret 🩵</h2>
+      <textarea id="secret-text" placeholder="Write something just for them..." style="width: 100%; height: 150px; padding: 10px; border: 1px solid #c9a9b4; border-radius: 8px; margin-bottom: 15px;"></textarea>
+      <button onclick="submitSecret()" class="nav-btn active" style="width: 100%;">Save Secret</button>
     </div>
   </div>
 
