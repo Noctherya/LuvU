@@ -3,7 +3,7 @@ const supabaseUrl = 'https://gessrezpwqmdajkfxgjk.supabase.co';
 const supabaseKey = 'sb_publishable_NlYgPe1Ii47nl0-anpcnSA_75ae85U9';
 const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
 
-// 2. Deine Briefe (bleiben unverändert im Code)
+// 2. Deine Briefe (Fest im Code, damit sie immer angezeigt werden)
 const letters = [
   {
     title: "you first open this app",
@@ -127,32 +127,11 @@ const letters = [
 },
 ];
 
-// 3. App-Logik
-document.addEventListener('DOMContentLoaded', async () => {
+// 3. Start der App
+document.addEventListener('DOMContentLoaded', () => {
   
-  // LOGIN
-  let currentUser = localStorage.getItem('luvu_user');
-  if (!currentUser) {
-    const loginScreen = document.createElement('div');
-    loginScreen.style.cssText = 'position:fixed; top:0; left:0; width:100%; height:100%; background:#f7f0e8; z-index:9999; display:flex; flex-direction:column; justify-content:center; align-items:center; font-family:"Cormorant Garamond", serif;';
-    loginScreen.innerHTML = `
-      <h1 style="font-family:'Caveat', cursive; color:#9b6b7a; font-size:3rem; margin-bottom:20px;">Wer bist du?</h1>
-      <button id="loginAly" style="margin:10px; padding:15px 40px; font-size:1.2rem; background:#9b6b7a; color:white; border:none; border-radius:30px; cursor:pointer; font-family:inherit;">Aly</button>
-      <button id="loginSebo" style="margin:10px; padding:15px 40px; font-size:1.2rem; background:#c9a9b4; color:white; border:none; border-radius:30px; cursor:pointer; font-family:inherit;">Sebo</button>
-    `;
-    document.body.appendChild(loginScreen);
-    document.getElementById('loginAly').addEventListener('click', () => { localStorage.setItem('luvu_user', 'Aly'); window.location.reload(); });
-    document.getElementById('loginSebo').addEventListener('click', () => { localStorage.setItem('luvu_user', 'Sebo'); window.location.reload(); });
-    return;
-  }
-
-  // SUCHE NACH DEN BRIEFEN (Wichtig für die Anzeige)
+  // A) Briefe sofort anzeigen (unabhängig von der DB)
   const envelopeContainer = document.getElementById('envelopes');
-  const letterView = document.getElementById('letterView');
-  const letterTitle = document.getElementById('letterTitle');
-  const letterBody = document.getElementById('letterBody');
-  const closeBtn = document.getElementById('closeBtn');
-
   if (envelopeContainer) {
     envelopeContainer.innerHTML = '';
     letters.forEach((letter, i) => {
@@ -168,142 +147,32 @@ document.addEventListener('DOMContentLoaded', async () => {
         </div>
       `;
       wrap.addEventListener('click', () => {
-        letterTitle.textContent = letter.title;
-        letterBody.innerHTML = letter.body;
-        letterView.classList.add('open');
+        document.getElementById('letterTitle').textContent = letter.title;
+        document.getElementById('letterBody').innerHTML = letter.body;
+        document.getElementById('letterView').classList.add('open');
       });
       envelopeContainer.appendChild(wrap);
     });
   }
-  if (closeBtn && letterView) closeBtn.addEventListener('click', () => letterView.classList.remove('open'));
 
-  // --- PLUS BUTTON MENÜ ---
+  // Schließen-Button für Briefe
+  document.getElementById('closeBtn').addEventListener('click', () => {
+    document.getElementById('letterView').classList.remove('open');
+  });
+
+  // B) Den Rest der App (My Day, Secrets, Us) leer initialisieren, damit nichts abstürzt
+  document.getElementById('daysList').innerHTML = '<p style="text-align:center; color:#9b6b7a;">Noch keine Momente da. Klicke auf das + um einen hinzuzufügen!</p>';
+  document.getElementById('pinboard').innerHTML = '<p style="text-align:center; color:#9b6b7a; padding:20px;">Noch keine Bilder da. Klicke auf das + um eins hinzuzufügen!</p>';
+  
+  // C) Den Plus-Button erstellen
   const fab = document.createElement('div');
   fab.innerHTML = '+';
-  fab.style.cssText = 'position:fixed; bottom:20px; right:20px; width:60px; height:60px; background:#9b6b7a; color:white; border-radius:50%; display:flex; justify-content:center; align-items:center; font-size:35px; box-shadow:0 4px 10px rgba(0,0,0,0.3); cursor:pointer; z-index:1000; transition:transform 0.2s;';
+  fab.style.cssText = 'position:fixed; bottom:20px; right:20px; width:60px; height:60px; background:#9b6b7a; color:white; border-radius:50%; display:flex; justify-content:center; align-items:center; font-size:35px; box-shadow:0 4px 10px rgba(0,0,0,0.3); cursor:pointer; z-index:1000;';
   document.body.appendChild(fab);
 
-  const menu = document.createElement('div');
-  menu.style.cssText = 'position:fixed; bottom:90px; right:20px; display:none; flex-direction:column; gap:10px; z-index:1000;';
-  menu.innerHTML = `
-    <button onclick="openUpload('secret')" style="padding:10px 20px; border-radius:20px; border:none; background:white; color:#9b6b7a; font-weight:bold; box-shadow:0 2px 5px rgba(0,0,0,0.2); cursor:pointer; text-align:left;">✨ Secret</button>
-    <button onclick="openUpload('us')" style="padding:10px 20px; border-radius:20px; border:none; background:white; color:#9b6b7a; font-weight:bold; box-shadow:0 2px 5px rgba(0,0,0,0.2); cursor:pointer; text-align:left;">📸 Us Moment</button>
-    <button onclick="openUpload('myday')" style="padding:10px 20px; border-radius:20px; border:none; background:white; color:#9b6b7a; font-weight:bold; box-shadow:0 2px 5px rgba(0,0,0,0.2); cursor:pointer; text-align:left;">☀️ Day Moment</button>
-    ${currentUser === 'Aly' ? `<button onclick="openUpload('letter')" style="padding:10px 20px; border-radius:20px; border:none; background:white; color:#9b6b7a; font-weight:bold; box-shadow:0 2px 5px rgba(0,0,0,0.2); cursor:pointer; text-align:left;">💌 Brief</button>` : ''}
-  `;
-  document.body.appendChild(menu);
-
+  // Hier kommt später die Logik für das Plus-Menü rein
   fab.addEventListener('click', () => {
-    if (menu.style.display === 'none') {
-      menu.style.display = 'flex';
-      fab.style.transform = 'rotate(45deg)';
-    } else {
-      menu.style.display = 'none';
-      fab.style.transform = 'rotate(0deg)';
-    }
+    alert("Das Menü kommt gleich! Der Rest der App läuft erstmal.");
   });
 
-  // --- UPLOAD FENSTER ---
-  const uploadView = document.createElement('div');
-  uploadView.style.cssText = 'position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); display:none; justify-content:center; align-items:center; z-index:2000;';
-  uploadView.innerHTML = `
-    <div style="background:white; padding:20px; border-radius:20px; width:90%; max-width:400px;">
-      <h3 id="uploadTitle" style="margin-bottom:15px; color:#9b6b7a; font-family:'Caveat', cursive; font-size:1.8rem;">Neuer Eintrag</h3>
-      <input type="text" id="uploadTitleInput" placeholder="Titel (für Briefe)" style="display:none; width:100%; margin-bottom:10px; padding:10px; border:1px solid #ccc; border-radius:10px;">
-      <textarea id="uploadText" placeholder="Dein Text..." style="display:none; width:100%; margin-bottom:10px; padding:10px; border:1px solid #ccc; border-radius:10px; height:80px;"></textarea>
-      <input type="date" id="uploadDate" style="display:none; width:100%; margin-bottom:10px; padding:10px; border:1px solid #ccc; border-radius:10px;">
-      <input type="file" id="uploadImage" accept="image/*" style="display:none; width:100%; margin-bottom:15px;">
-      <div style="display:flex; gap:10px;">
-        <button onclick="closeUpload()" style="flex:1; padding:10px; background:#eee; border:none; border-radius:10px;">Abbrechen</button>
-        <button id="uploadBtn" style="flex:1; padding:10px; background:#9b6b7a; color:white; border:none; border-radius:10px;">Hochladen</button>
-      </div>
-    </div>
-  `;
-  document.body.appendChild(uploadView);
-
-  let currentUploadType = '';
-  window.openUpload = (type) => {
-    currentUploadType = type;
-    menu.style.display = 'none';
-    fab.style.transform = 'rotate(0deg)';
-    uploadView.style.display = 'flex';
-    
-    document.getElementById('uploadTitleInput').style.display = 'none';
-    document.getElementById('uploadText').style.display = 'none';
-    document.getElementById('uploadDate').style.display = 'none';
-    document.getElementById('uploadImage').style.display = 'none';
-    
-    document.getElementById('uploadTitleInput').value = '';
-    document.getElementById('uploadText').value = '';
-    document.getElementById('uploadDate').value = '';
-    document.getElementById('uploadImage').value = '';
-
-    if (type === 'secret') {
-      document.getElementById('uploadTitle').innerText = 'Neues Secret';
-      document.getElementById('uploadText').style.display = 'block';
-    } else if (type === 'us') {
-      document.getElementById('uploadTitle').innerText = 'Neuer Us Moment';
-      document.getElementById('uploadImage').style.display = 'block';
-    } else if (type === 'myday') {
-      document.getElementById('uploadTitle').innerText = 'Neuer Day Moment';
-      document.getElementById('uploadDate').style.display = 'block';
-      document.getElementById('uploadText').style.display = 'block';
-      document.getElementById('uploadImage').style.display = 'block';
-    } else if (type === 'letter') {
-      document.getElementById('uploadTitle').innerText = 'Neuer Brief';
-      document.getElementById('uploadTitleInput').style.display = 'block';
-      document.getElementById('uploadText').style.display = 'block';
-    }
-  };
-
-  window.closeUpload = () => { uploadView.style.display = 'none'; };
-
-  document.getElementById('uploadBtn').addEventListener('click', async () => {
-    const titleInput = document.getElementById('uploadTitleInput').value;
-    const textInput = document.getElementById('uploadText').value;
-    const dateInput = document.getElementById('uploadDate').value;
-    const file = document.getElementById('uploadImage').files[0];
-    const btn = document.getElementById('uploadBtn');
-    
-    btn.innerText = 'Lädt...';
-    btn.disabled = true;
-
-    try {
-      let imageUrl = '';
-      if (file) {
-        const fileName = `${Date.now()}_${file.name}`;
-        const { error: uploadError } = await supabase.storage.from('photos').upload(fileName, file);
-        if (uploadError) throw uploadError;
-        const { data: urlData } = supabase.storage.from('photos').getPublicUrl(fileName);
-        imageUrl = urlData.publicUrl;
-      }
-
-      let content = textInput;
-      if (currentUploadType === 'letter') {
-         content = JSON.stringify({ title: titleInput, body: textInput });
-      }
-
-      let createdAt = new Date().toISOString();
-      if (currentUploadType === 'myday' && dateInput) {
-         createdAt = new Date(dateInput).toISOString();
-      }
-
-      const { error } = await supabase.from('moments').insert([{ 
-        type: currentUploadType, 
-        content: content, 
-        image_url: imageUrl,
-        author: currentUser,
-        created_at: createdAt
-      }]);
-      
-      if (error) throw error;
-      alert("Erfolgreich hochgeladen! 🎉");
-      window.location.reload(); 
-    } catch (err) {
-      console.error(err);
-      alert("Fehler beim Hochladen! 🥺");
-      btn.innerText = 'Hochladen';
-      btn.disabled = false;
-    }
-  });
 });
