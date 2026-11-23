@@ -1,4 +1,4 @@
-// 1. Supabase Verbindung
+// 1. Supabase Verbindung (wird erst später genutzt)
 const supabaseUrl = 'https://gessrezpwqmdajkfxgjk.supabase.co';
 const supabaseKey = 'sb_publishable_NlYgPe1Ii47nl0-anpcnSA_75ae85U9';
 const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
@@ -31,8 +31,9 @@ const letters = [
   { title: "you're sick", body: "hey baby,\n\nare you sick? because if you are, i wish i could be there right now to take care of you. i would make you soup, cuddle you, and complain when you give me your germs (but secretly love it).\n\nrest, drink water, and just let yourself be sick for a while. i'm sending you lots of virtual hugs and kisses. Get some rest, sleep. I'm the least thing you should worry about right now and so is everyone else. Just focus on yourself now, okay? get well soon, my love.", media: [] }
 ];
 
-// 3. App starten (Briefe zeichnen)
+// 3. App starten
 document.addEventListener('DOMContentLoaded', () => {
+  // ZUERST die Briefe zeichnen (das kann nicht abstürzen)
   const envelopeContainer = document.getElementById('envelopes');
   if (envelopeContainer) {
     envelopeContainer.innerHTML = '';
@@ -60,4 +61,7 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('closeBtn').addEventListener('click', () => {
     document.getElementById('letterView').classList.remove('open');
   });
+
+  // DANACH Supabase abfragen (falls die DB leer ist, passiert einfach nichts)
+  // (Das machen wir erst, wenn wir die Upload-Funktion einbauen, damit es jetzt sicher läuft)
 });
