@@ -1,4 +1,4 @@
-// DEINE BRIEFE
+// 1. DEINE BRIEFE
 const letters = [
   { title: "you first open this app", body: "hey baby,\n\nif you're reading this, you just opened our little app for the first time. i built it for you – with love, a little bit of chaos, and a whole lot of me in it. I thought if you could do it, why not me? Soo this is what I came up with randomly at work and I personally love that idea.\n\nlook around. there are letters here for you. for every moment you need me. Bare with me but I'm really trying my best over here. Just overlook any bugs you might find throughout this whole thing - upsi.\n\ni love you.", media: [] },
   { title: "when you can't sleep", body: "hey baby,\n\nif you're reading this, it means the night is too long and your head is too loud. i wish i could be there right now. i would wrap my arms around you, pull you close, and just hold you until you fall asleep.\n\nsince i can't do that right now, i want you to close your eyes for a second. imagine i'm right there next to you. imagine my hand on your chest, feeling your heartbeat slow down. imagine me whispering that everything is going to be okay, because it is. you are safe. you are loved. \n\nstop thinking about tomorrow. just breathe. i'm right here, even if it's just in my thoughts. i love you. sleep well, my love.", media: [] },
@@ -26,10 +26,27 @@ const letters = [
   { title: "you're sick", body: "hey baby,\n\nare you sick? because if you are, i wish i could be there right now to take care of you. i would make you soup, cuddle you, and complain when you give me your germs (but secretly love it).\n\nrest, drink water, and just let yourself be sick for a while. i'm sending you lots of virtual hugs and kisses. Get some rest, sleep. I'm the least thing you should worry about right now and so is everyone else. Just focus on yourself now, okay? get well soon, my love.", media: [] }
 ];
 
-// Start der App
+// 2. Start der App
 document.addEventListener('DOMContentLoaded', () => {
-  const envelopeContainer = document.getElementById('envelopes');
   
+  // LOGIN (Wer bist du?)
+  let currentUser = localStorage.getItem('luvu_user');
+  if (!currentUser) {
+    const loginScreen = document.createElement('div');
+    loginScreen.style.cssText = 'position:fixed; top:0; left:0; width:100%; height:100%; background:#f7f0e8; z-index:9999; display:flex; flex-direction:column; justify-content:center; align-items:center; font-family:"Cormorant Garamond", serif;';
+    loginScreen.innerHTML = `
+      <h1 style="font-family:'Caveat', cursive; color:#9b6b7a; font-size:3rem; margin-bottom:20px;">Wer bist du?</h1>
+      <button id="loginAly" style="margin:10px; padding:15px 40px; font-size:1.2rem; background:#9b6b7a; color:white; border:none; border-radius:30px; cursor:pointer; font-family:inherit;">Aly</button>
+      <button id="loginSebo" style="margin:10px; padding:15px 40px; font-size:1.2rem; background:#c9a9b4; color:white; border:none; border-radius:30px; cursor:pointer; font-family:inherit;">Sebo</button>
+    `;
+    document.body.appendChild(loginScreen);
+    document.getElementById('loginAly').addEventListener('click', () => { localStorage.setItem('luvu_user', 'Aly'); window.location.reload(); });
+    document.getElementById('loginSebo').addEventListener('click', () => { localStorage.setItem('luvu_user', 'Sebo'); window.location.reload(); });
+    return;
+  }
+
+  // BRIEFE ANZEIGEN
+  const envelopeContainer = document.getElementById('envelopes');
   if (envelopeContainer) {
     envelopeContainer.innerHTML = '';
     letters.forEach((letter, i) => {
@@ -56,4 +73,32 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('closeBtn').addEventListener('click', () => {
     document.getElementById('letterView').classList.remove('open');
   });
+
+  // --- PLUS MENÜ (Nur für Aly sichtbar) ---
+  if (currentUser === 'Aly') {
+    const fab = document.createElement('div');
+    fab.innerHTML = '+';
+    fab.style.cssText = 'position:fixed; bottom:20px; right:20px; width:60px; height:60px; background:#9b6b7a; color:white; border-radius:50%; display:flex; justify-content:center; align-items:center; font-size:35px; box-shadow:0 4px 10px rgba(0,0,0,0.3); cursor:pointer; z-index:1000; transition:transform 0.2s;';
+    document.body.appendChild(fab);
+
+    const menu = document.createElement('div');
+    menu.style.cssText = 'position:fixed; bottom:90px; right:20px; display:none; flex-direction:column; gap:10px; z-index:1000;';
+    menu.innerHTML = `
+      <button onclick="alert('Secret hinzufügen kommt bald!')" style="padding:10px 20px; border-radius:20px; border:none; background:white; color:#9b6b7a; font-weight:bold; box-shadow:0 2px 5px rgba(0,0,0,0.2); cursor:pointer; text-align:left;">✨ Secret</button>
+      <button onclick="alert('Us Moment hinzufügen kommt bald!')" style="padding:10px 20px; border-radius:20px; border:none; background:white; color:#9b6b7a; font-weight:bold; box-shadow:0 2px 5px rgba(0,0,0,0.2); cursor:pointer; text-align:left;">📸 Us Moment</button>
+      <button onclick="alert('Day Moment hinzufügen kommt bald!')" style="padding:10px 20px; border-radius:20px; border:none; background:white; color:#9b6b7a; font-weight:bold; box-shadow:0 2px 5px rgba(0,0,0,0.2); cursor:pointer; text-align:left;">☀️ Day Moment</button>
+      <button onclick="alert('Brief hinzufügen kommt bald!')" style="padding:10px 20px; border-radius:20px; border:none; background:white; color:#9b6b7a; font-weight:bold; box-shadow:0 2px 5px rgba(0,0,0,0.2); cursor:pointer; text-align:left;">💌 Brief</button>
+    `;
+    document.body.appendChild(menu);
+
+    fab.addEventListener('click', () => {
+      if (menu.style.display === 'none') {
+        menu.style.display = 'flex';
+        fab.style.transform = 'rotate(45deg)';
+      } else {
+        menu.style.display = 'none';
+        fab.style.transform = 'rotate(0deg)';
+      }
+    });
+  }
 });
