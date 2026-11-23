@@ -53,9 +53,11 @@
     <div class="days-list" id="daysList"></div>
   </div>
 
+  <!-- HIER IST DIE ÄNDERUNG 1: Der neue Herz-Stapel -->
   <div id="page-secrets" class="page">
     <h1>little secrets 🩵</h1>
-    <div class="secrets-list" id="secretsList"></div>
+    <p class="subtitle">a little pile of hearts for you</p>
+    <div class="hearts-stack" id="heartsStack"></div>
   </div>
 
   <div id="page-us" class="page">
@@ -125,7 +127,16 @@
     </div>
   </div>
 
-</div>
+  <!-- HIER IST DIE ÄNDERUNG 2: Das neue Overlay für das Briefchen -->
+  <div class="letter-view" id="secretView">
+    <div class="letter-card" style="background: #fff5f7; border-color: #f4d5de;">
+      <button class="close-btn" onclick="document.getElementById('secretView').classList.remove('open')">✕</button>
+      <h2 style="color: #d86c8a;">A little secret 🩵</h2>
+      <div class="letter-body" id="secretBody" style="font-size: 1.5rem; text-align: center; margin-top: 20px;"></div>
+    </div>
+  </div>
+
+</div> <!-- Ende von app-screen -->
 
   <script src="script.js"></script>
 </body>
