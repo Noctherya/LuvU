@@ -1,3 +1,5 @@
+document.body.style.backgroundColor = "lightblue";
+
 // 1. Supabase Verbindung
 const supabaseUrl = 'https://gessrezpwqmdajkfxgjk.supabase.co';
 const supabaseKey = 'sb_publishable_NlYgPe1Ii47nl0-anpcnSA_75ae85U9';
