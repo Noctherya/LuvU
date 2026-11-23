@@ -7,21 +7,28 @@ let currentRole = null;
 
 // 2. KLICK-FUNKTIONEN (Sofort geladen)
 window.switchTab = (tabName) => {
+  // Alle Seiten ausblenden
   document.querySelectorAll('.page').forEach(page => page.classList.remove('active'));
-  document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
+  
+  // Alle Tab-Buttons (oben) auf "nicht aktiv" setzen
+  document.getElementById('tab-letters').classList.remove('active');
+  document.getElementById('tab-myday').classList.remove('active');
+  document.getElementById('tab-secrets').classList.remove('active');
+  document.getElementById('tab-us').classList.remove('active');
 
+  // Die richtige Seite anzeigen und den richtigen Button markieren
   if (tabName === 'letters') {
     document.getElementById('page-letters').classList.add('active');
-    document.querySelectorAll('.nav-btn')[0].classList.add('active');
+    document.getElementById('tab-letters').classList.add('active');
   } else if (tabName === 'myday') {
     document.getElementById('page-myday').classList.add('active');
-    document.querySelectorAll('.nav-btn')[1].classList.add('active');
+    document.getElementById('tab-myday').classList.add('active');
   } else if (tabName === 'secrets') {
     document.getElementById('page-secrets').classList.add('active');
-    document.querySelectorAll('.nav-btn')[2].classList.add('active');
+    document.getElementById('tab-secrets').classList.add('active');
   } else if (tabName === 'us') {
     document.getElementById('page-us').classList.add('active');
-    document.querySelectorAll('.nav-btn')[3].classList.add('active');
+    document.getElementById('tab-us').classList.add('active');
   }
 };
 
