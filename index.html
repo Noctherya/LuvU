@@ -39,6 +39,7 @@
     <button class="nav-btn" onclick="logout()">🚪 Logout</button>
   </div>
 
+  <!-- SEITEN (erstmal leer) -->
   <div id="page-letters" class="page active">
     <h1>for you 💌</h1>
     <p class="subtitle">a few letters from me</p>
@@ -70,7 +71,17 @@
     </div>
   </div>
 
-  <!-- Overlays für die Fenster -->
+  <!-- DER SCHWEBENDE PLUS-BUTTON -->
+  <div class="fab-container" id="fab-container">
+    <div class="fab-menu" id="fab-menu">
+      <button class="fab-item" onclick="openAddModal('us')">📸 Us Moment</button>
+      <button class="fab-item" onclick="openAddModal('ourday')">☀️ Our Day</button>
+      <button class="fab-item" onclick="openAddModal('secret')">💌 Secret</button>
+    </div>
+    <button class="fab-btn" id="fab-btn" onclick="toggleFab()">+</button>
+  </div>
+
+  <!-- Overlays (Fenster) für die Briefe etc. -->
   <div class="letter-view" id="letterView">
     <div class="letter-card">
       <button class="close-btn" id="closeBtn">✕</button>
@@ -78,29 +89,6 @@
       <div class="letter-media" id="letterMedia"></div>
       <div class="letter-body" id="letterBody"></div>
       <div class="signature">— me 💙</div>
-    </div>
-  </div>
-
-  <div class="letter-view" id="dayView">
-    <div class="letter-card day-detail-card">
-      <button class="close-btn" id="closeDayBtn">✕</button>
-      <h2 id="dayDetailDate"></h2>
-      <div class="day-detail-content" id="dayDetailContent"></div>
-    </div>
-  </div>
-
-  <div class="letter-view" id="secretView">
-    <div class="letter-card secret-popup-card">
-      <button class="close-btn" id="closeSecretBtn">✕</button>
-      <div class="secret-media" id="secretMedia"></div>
-      <div class="secret-body" id="secretBody"></div>
-    </div>
-  </div>
-
-  <div class="letter-view" id="imageView">
-    <div class="image-popup">
-      <button class="close-btn" id="closeImageBtn">✕</button>
-      <img id="enlargedImage" src="" alt="Us">
     </div>
   </div>
 
