@@ -1651,3 +1651,42 @@ window.submitWatchItem = async () => {
   loadWatchList();
   switchTab('watchlist');
 };
+
+/* ===== FIX: Formularfelder beim Öffnen leeren ===== */
+(function () {
+  const originalOpenAddModal = window.openAddModal;
+
+  const FORM_FIELDS = {
+    letter: ['new-letter-title', 'new-letter-body'],
+    us: ['us-image'],
+    ourday: ['ourday-date', 'ourday-image', 'ourday-text'],
+    secret: ['secret-text'],
+    bucket: ['bucket-image', 'bucket-title', 'bucket-details'],
+    watch: ['watch-search']
+  };
+
+  function clearForm(type) {
+    const ids = FORM_FIELDS[type];
+    if (!ids) return;
+
+    ids.forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.value = '';
+    });
+
+    // Watchlist: auch Suchergebnisse + Auswahl zurücksetzen
+    if (type === 'watch') {
+      const results = document.getElementById('watch-results');
+      if (results) results.innerHTML = '';
+      const selected = document.getElementById('watch-selected');
+      if (selected) selected.style.display = 'none';
+      selectedWatchResult = null;
+    }
+  }
+
+  window.openAddModal = (type) => {
+    clearForm(type);
+    if (typeof originalOpenAddModal === 'function') originalOpenAddModal(type);
+  };
+})();
+
