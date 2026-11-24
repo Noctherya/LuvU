@@ -261,6 +261,59 @@ async function deleteOurDayEntry(id, entryElement) {
   loadOurDay();
 }
 
+// 1i. NEU: BILD IN GROSS (Lightbox)
+function openImageViewer(src) {
+  if (!src) return;
+
+  const overlay = document.createElement('div');
+  overlay.className = 'letter-view open';
+  overlay.style.zIndex = '10060';
+  overlay.style.background = 'rgba(74, 64, 72, 0.9)';
+  overlay.style.padding = '0';
+  overlay.style.cursor = 'zoom-out';
+
+  const img = document.createElement('img');
+  img.src = src;
+  img.style.maxWidth = '92vw';
+  img.style.maxHeight = '86vh';
+  img.style.width = 'auto';
+  img.style.height = 'auto';
+  img.style.objectFit = 'contain';
+  img.style.border = '6px solid #fdfaf2';
+  img.style.borderRadius = '6px';
+  img.style.boxShadow = '0 14px 44px rgba(0, 0, 0, 0.5)';
+  img.style.cursor = 'zoom-out';
+
+  const closeBtn = document.createElement('button');
+  closeBtn.textContent = '✕';
+  closeBtn.className = 'close-btn';
+  closeBtn.style.top = '18px';
+  closeBtn.style.right = '18px';
+  closeBtn.style.width = '34px';
+  closeBtn.style.height = '34px';
+  closeBtn.style.background = 'rgba(255, 255, 255, 0.92)';
+
+  const onKey = (event) => {
+    if (event.key === 'Escape') close();
+  };
+
+  const close = () => {
+    overlay.remove();
+    document.removeEventListener('keydown', onKey);
+  };
+
+  overlay.onclick = close;
+  closeBtn.onclick = (event) => {
+    event.stopPropagation();
+    close();
+  };
+  document.addEventListener('keydown', onKey);
+
+  overlay.appendChild(img);
+  overlay.appendChild(closeBtn);
+  document.body.appendChild(overlay);
+}
+
 // 2. TAB WECHSEL
 // Oben nur Inbox / Sent / More, der Rest steckt im "More"-Menü
 const MORE_TABS = ['myday', 'secrets', 'us'];
@@ -558,7 +611,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // NEU: More-Menü-Button (per Listener, unabhängig vom HTML)
+  // More-Menü-Button (per Listener, unabhängig vom HTML)
   const moreBtnEl = document.getElementById('tab-more');
   if (moreBtnEl) {
     moreBtnEl.addEventListener('click', (event) => {
@@ -568,7 +621,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // NEU: More-Menü schließt sich beim Klick daneben
+  // More-Menü schließt sich beim Klick daneben
   document.addEventListener('click', (event) => {
     const menu = document.getElementById('more-menu');
     if (!menu || !menu.classList.contains('is-open')) return;
@@ -779,7 +832,7 @@ async function loadSecrets() {
   }
 }
 
-// jedes Pinboard-Foto mit X zum Löschen
+// jedes Pinboard-Foto mit X zum Löschen, Tippen = Großansicht
 async function loadUs() {
   const container = document.getElementById('pinboard');
   if(!container) return;
@@ -794,6 +847,11 @@ async function loadUs() {
     const img = document.createElement('img');
     img.src = moment.image_url;
     img.className = 'pinned-photo';
+    img.style.cursor = 'zoom-in';
+    img.onclick = (event) => {
+      event.stopPropagation();
+      openImageViewer(moment.image_url);
+    };
 
     const delBtn = createDeleteX(() => deleteUsMoment(moment.id, wrap));
     delBtn.style.top = '16px';
@@ -805,7 +863,7 @@ async function loadUs() {
   });
 }
 
-// jeder Our-Day-Eintrag mit X zum Löschen (in der Detail-Ansicht)
+// jeder Our-Day-Eintrag mit X zum Löschen, Tippen aufs Bild = Großansicht
 async function loadOurDay() {
   const container = document.getElementById('daysList');
   if(!container) return;
@@ -842,6 +900,11 @@ async function loadOurDay() {
         const img = document.createElement('img');
         img.src = entry.image_url;
         img.className = 'day-image-detail';
+        img.style.cursor = 'zoom-in';
+        img.onclick = (event) => {
+          event.stopPropagation();
+          openImageViewer(entry.image_url);
+        };
 
         const sender = document.createElement('span');
         sender.className = 'day-img-sender';
