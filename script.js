@@ -1187,7 +1187,6 @@ window.submitBucketItem = async () => {
 // 9b. ERLEDIGT + ERINNERUNGSFOTOS
 function renderBucketDoneState(item) {
   const doneBtn = document.getElementById('bucketDoneBtn');
-  const photosSection = document.getElementById('bucketPhotosSection');
   const photosWrap = document.getElementById('bucketPhotos');
   const isDone = item.is_done === true;
 
@@ -1196,14 +1195,22 @@ function renderBucketDoneState(item) {
     doneBtn.classList.toggle('active', !isDone);
   }
 
-  if (photosSection) {
-    photosSection.style.display = isDone ? 'block' : 'none';
-  }
-
   if (!photosWrap) return;
   photosWrap.innerHTML = '';
 
   const photos = Array.isArray(item.photos) ? item.photos : [];
+
+  // Hinweis, solange noch keine Erinnerung hinterlegt ist
+  if (photos.length === 0) {
+    const hint = document.createElement('p');
+    hint.className = 'subtitle';
+    hint.style.margin = '0';
+    hint.style.fontSize = '0.9rem';
+    hint.textContent = '🐧 no photos yet – add at least one to finish it';
+    photosWrap.appendChild(hint);
+    return;
+  }
+
   photos.forEach(url => {
     const img = document.createElement('img');
     img.src = url;
@@ -1222,7 +1229,15 @@ function syncCurrentBucketItem() {
 window.toggleBucketDone = async () => {
   if (!currentBucketItem) return;
 
-  const newValue = !(currentBucketItem.is_done === true);
+  const photos = Array.isArray(currentBucketItem.photos) ? currentBucketItem.photos : [];
+  const isDone = currentBucketItem.is_done === true;
+
+  // ohne mindestens eine Erinnerung lässt sich nichts abhaken
+  if (!isDone && photos.length === 0) {
+    return alert('Add at least one memory photo first 📸');
+  }
+
+  const newValue = !isDone;
   const { error } = await supabaseClient
     .from('bucket_list')
     .update({ is_done: newValue })
@@ -1239,10 +1254,6 @@ window.toggleBucketDone = async () => {
 
 window.submitBucketPhotos = async () => {
   if (!currentBucketItem) return;
-
-  if (currentBucketItem.is_done !== true) {
-    return alert('Mark it as done first 💕');
-  }
 
   const input = document.getElementById('bucket-photo-input');
   const files = input && input.files ? Array.from(input.files) : [];
@@ -1269,4 +1280,44 @@ window.submitBucketPhotos = async () => {
 
   await loadBucketList();
   syncCurrentBucketItem();
+};
+
+// 9c. BUCKET-LIST-EINTRAG LÖSCHEN (auch wenn schon erledigt)
+function extractStorageFileName(url) {
+  if (!url) return null;
+  const marker = '/images/';
+  const index = String(url).indexOf(marker);
+  if (index === -1) return null;
+  const name = String(url).slice(index + marker.length).split('?')[0];
+  return name || null;
+}
+
+window.deleteBucketItem = async () => {
+  if (!currentBucketItem) return;
+
+  const confirmed = await askConfirm('Do you really want to delete this bucket list idea?');
+  if (!confirmed) return;
+
+  const item = currentBucketItem;
+  const photos = Array.isArray(item.photos) ? item.photos.slice() : [];
+
+  const { error } = await supabaseClient.from('bucket_list').delete().eq('id', item.id);
+  if (error) return alert(error.message);
+
+  // Best effort: zugehörige Bilder zusätzlich aus dem Storage räumen
+  const filesToRemove = photos.concat(item.image_url ? [item.image_url] : [])
+    .map(extractStorageFileName)
+    .filter(Boolean);
+
+  if (filesToRemove.length > 0) {
+    try {
+      await supabaseClient.storage.from('images').remove(filesToRemove);
+    } catch (e) {
+      // egal – der Eintrag ist gelöscht, das ist der wichtige Teil
+    }
+  }
+
+  currentBucketItem = null;
+  document.getElementById('bucketView').classList.remove('open');
+  loadBucketList();
 };
