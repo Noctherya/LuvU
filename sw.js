@@ -1,4 +1,4 @@
-const CACHE_NAME = 'luvu-app-v4';
+const CACHE_NAME = 'luvu-app-v5';
 
 self.addEventListener('install', (e) => { self.skipWaiting(); });
 
