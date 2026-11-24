@@ -3,7 +3,7 @@ const SUPABASE_URL = 'https://gessrezpwqmdajkfxgjk.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_NlYgPe1Ii47nl0-anpcnSA_75ae85U9';
 const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-const TMDB_API_KEY = 'DEIN_TMDB_API_KEY';
+const TMDB_API_KEY = '2ace4aa0eb9800c1c066ce11d888452f';
 const TMDB_POSTER_BASE = 'https://image.tmdb.org/t/p/w200';
 
 let currentRole = null;
