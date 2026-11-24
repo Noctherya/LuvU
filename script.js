@@ -262,19 +262,18 @@ async function deleteOurDayEntry(id, entryElement) {
 }
 
 // 2. TAB WECHSEL
-// NEU: oben nur Inbox / Sent, der Rest steckt im "More"-Menü
+// Oben nur Inbox / Sent / More, der Rest steckt im "More"-Menü
 const MORE_TABS = ['myday', 'secrets', 'us'];
 
 function closeMoreMenu() {
   const menu = document.getElementById('more-menu');
-  if (menu) menu.classList.remove('open');
+  if (menu) menu.classList.remove('is-open');
 }
 
-window.toggleMoreMenu = (event) => {
+window.toggleMoreMenu = () => {
   const menu = document.getElementById('more-menu');
   if (!menu) return;
-  menu.classList.toggle('open');
-  if (event) event.stopPropagation();
+  menu.classList.toggle('is-open');
 };
 
 window.switchTab = (tabName) => {
@@ -559,13 +558,23 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  // NEU: More-Menü-Button (per Listener, unabhängig vom HTML)
+  const moreBtnEl = document.getElementById('tab-more');
+  if (moreBtnEl) {
+    moreBtnEl.addEventListener('click', (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      toggleMoreMenu();
+    });
+  }
+
   // NEU: More-Menü schließt sich beim Klick daneben
   document.addEventListener('click', (event) => {
     const menu = document.getElementById('more-menu');
-    if (!menu || !menu.classList.contains('open')) return;
+    if (!menu || !menu.classList.contains('is-open')) return;
     if (menu.contains(event.target)) return;
-    const moreBtn = document.getElementById('tab-more');
-    if (moreBtn && moreBtn.contains(event.target)) return;
+    const btn = document.getElementById('tab-more');
+    if (btn && btn.contains(event.target)) return;
     closeMoreMenu();
   });
 
