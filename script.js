@@ -3,7 +3,49 @@ const SUPABASE_URL = 'https://gessrezpwqmdajkfxgjk.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_NlYgPe1Ii47nl0-anpcnSA_75ae85U9';
 const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-let currentRole = null; 
+// 1b. NEU: WER IST WER?
+// Optional: trage hier eure beiden Login-E-Mails ein (klein geschrieben).
+// Dann kann sich jede Mail NUR noch auf ihrer eigenen Oberfläche anmelden.
+// Bleibt ein Feld leer ('') -> das Konto wird beim ersten Login automatisch
+// dauerhaft an die gewählte Rolle gebunden (wird in Supabase gespeichert).
+const ROLE_EMAILS = {
+  Aly: '',
+  Sebo: ''
+};
+
+let currentRole = null;
+
+// 1c. NEU: HELFER FÜR ROLLEN
+function normalizeEmail(email) {
+  return (email || '').trim().toLowerCase();
+}
+
+function emailForRole(role) {
+  const mail = normalizeEmail(ROLE_EMAILS[role]);
+  return mail === '' ? null : mail;
+}
+
+function roleFromEmail(email) {
+  const mail = normalizeEmail(email);
+  if (!mail) return null;
+  if (emailForRole('Aly') === mail) return 'Aly';
+  if (emailForRole('Sebo') === mail) return 'Sebo';
+  return null;
+}
+
+// Rolle eines Kontos: 1. dauerhaft in Supabase (user_metadata), 2. E-Mail-Liste
+function roleFromUser(user) {
+  const metaRole = user && user.user_metadata ? user.user_metadata.role : null;
+  if (metaRole === 'Aly' || metaRole === 'Sebo') return metaRole;
+  return roleFromEmail(user ? user.email : '');
+}
+
+function setLoginMessage(text, isError = true) {
+  const el = document.getElementById('login-message');
+  if (!el) return;
+  el.textContent = text || '';
+  el.style.color = isError ? '#c2557a' : '#8a9bb0';
+}
 
 // 2. TAB WECHSEL
 window.switchTab = (tabName) => {
@@ -60,6 +102,22 @@ window.setRole = (role) => {
   document.getElementById('btn-aly').classList.remove('active');
   document.getElementById('btn-sebo').classList.remove('active');
   document.getElementById('btn-' + role.toLowerCase()).classList.add('active');
+
+  // NEU: gemerkte E-Mail dieser Rolle vorausfüllen
+  const emailInput = document.getElementById('email-input');
+  const knownMail = emailForRole(role);
+  const rememberedMail = localStorage.getItem('luvu_email_' + role);
+  const remembered = knownMail || rememberedMail || '';
+  if (emailInput) {
+    if (remembered) {
+      emailInput.value = remembered;
+    } else if (roleFromEmail(emailInput.value)) {
+      // Mail der anderen Person steht noch drin -> wegräumen
+      emailInput.value = '';
+    }
+  }
+
+  setLoginMessage(`Logging in as ${role} ${role === 'Aly' ? '👩' : '👨'}`, false);
 };
 
 function showApp() {
@@ -91,32 +149,102 @@ function showApp() {
 }
 
 window.logout = async () => {
-  localStorage.removeItem('luvu_role');
+  // NEU: Rolle bleibt gemerkt, damit das Gerät die Person wiedererkennt
   await supabaseClient.auth.signOut();
   window.location.reload();
 };
 
 // 5. LOGIN
-document.addEventListener('DOMContentLoaded', () => {
-  document.getElementById('login-btn').addEventListener('click', async () => {
-    const email = document.getElementById('email-input').value;
-    const password = document.getElementById('password-input').value;
-    const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
-    if (error) {
-      document.getElementById('login-message').textContent = error.message;
-    } else {
-      showApp();
+async function doLogin() {
+  const email = normalizeEmail(document.getElementById('email-input').value);
+  const password = document.getElementById('password-input').value;
+
+  if (!currentRole) return setLoginMessage('Please choose who you are first.');
+  if (!email || !password) return setLoginMessage('Please enter your email and password.');
+
+  // NEU: Diese Mail gehört zur anderen Person?
+  const mailRole = roleFromEmail(email);
+  if (mailRole && mailRole !== currentRole) {
+    return setLoginMessage(`That email belongs to ${mailRole}. Please pick ${mailRole} above.`);
+  }
+
+  setLoginMessage('Logging in…', false);
+  const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+  if (error) return setLoginMessage(error.message);
+
+  // NEU: Konto schon an die andere Rolle gebunden?
+  const boundRole = roleFromUser(data.user);
+  if (boundRole && boundRole !== currentRole) {
+    await supabaseClient.auth.signOut();
+    return setLoginMessage(`This account is ${boundRole}'s. Please pick ${boundRole} above.`);
+  }
+
+  // NEU: Erstes Login dieses Kontos -> Rolle dauerhaft an das Konto binden
+  if (!boundRole) {
+    const ok = confirm(`This account will be linked to ${currentRole} from now on. Continue?`);
+    if (!ok) {
+      await supabaseClient.auth.signOut();
+      return setLoginMessage('Login cancelled.', false);
     }
+    const { error: metaError } = await supabaseClient.auth.updateUser({ data: { role: currentRole } });
+    if (metaError) return setLoginMessage(metaError.message);
+  }
+
+  localStorage.setItem('luvu_email_' + currentRole, email);
+  localStorage.setItem('luvu_role', currentRole);
+  setLoginMessage('', false);
+  showApp();
+}
+
+async function doSignup() {
+  const email = normalizeEmail(document.getElementById('email-input').value);
+  const password = document.getElementById('password-input').value;
+
+  if (!currentRole) return setLoginMessage('Please choose who you are first.');
+  if (!email || !password) return setLoginMessage('Please enter an email and password.');
+
+  const mailRole = roleFromEmail(email);
+  if (mailRole && mailRole !== currentRole) {
+    return setLoginMessage(`That email belongs to ${mailRole}. Please pick ${mailRole} above.`);
+  }
+
+  const { error } = await supabaseClient.auth.signUp({
+    email,
+    password,
+    options: { data: { role: currentRole } } // NEU: Rolle direkt mitspeichern
   });
 
-  document.getElementById('signup-btn').addEventListener('click', async () => {
-    const email = document.getElementById('email-input').value;
-    const password = document.getElementById('password-input').value;
-    const { error } = await supabaseClient.auth.signUp({ email, password });
-    if (error) {
-      document.getElementById('login-message').textContent = error.message;
-    } else {
-      document.getElementById('login-message').textContent = 'Check your emails for a confirmation link!';
+  if (error) {
+    setLoginMessage(error.message);
+  } else {
+    localStorage.setItem('luvu_email_' + currentRole, email);
+    setLoginMessage('Check your emails for a confirmation link!', false);
+  }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('login-btn').addEventListener('click', doLogin);
+  document.getElementById('signup-btn').addEventListener('click', doSignup);
+
+  // NEU: Beim Öffnen der App prüfen, ob schon jemand angemeldet ist
+  supabaseClient.auth.getSession().then(({ data }) => {
+    const session = data ? data.session : null;
+    const user = session ? session.user : null;
+    const role = user ? roleFromUser(user) : null;
+
+    // Kontos mit bekannter Rolle -> direkt in die App (PWA merkt sich die Person)
+    if (role) {
+      currentRole = role;
+      localStorage.setItem('luvu_role', role);
+      if (user.email) localStorage.setItem('luvu_email_' + role, normalizeEmail(user.email));
+      showApp();
+      return;
+    }
+
+    // Sonst: zuletzt benutzte Rolle auf dem Login-Screen vorwählen
+    const rememberedRole = localStorage.getItem('luvu_role');
+    if (rememberedRole === 'Aly' || rememberedRole === 'Sebo') {
+      setRole(rememberedRole);
     }
   });
 });
