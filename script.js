@@ -16,7 +16,7 @@ const ROLE_EMAILS = {
 // TMDB (The Movie Database) für Titel-Suche + Cover
 // Key holen: https://www.themoviedb.org/settings/api -> "API Key (v3 auth)"
 // Leer lassen = es funktioniert alles, nur ohne automatisches Cover.
-const TMDB_API_KEY = '2ace4aa0eb9800c1c066ce11d888452f';
+const TMDB_API_KEY = '';
 
 // 1d. "ANGEMELDET BLEIBEN" / "PASSWORT MERKEN"
 const REMEMBER_KEY = 'luvu_remember';        // '1' = angemeldet bleiben, '0' = nicht
