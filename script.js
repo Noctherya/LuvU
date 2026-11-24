@@ -1690,3 +1690,16 @@ window.submitWatchItem = async () => {
   };
 })();
 
+/* ===== FIX: Secret-Overlay immer über dem Herz-Stapel ===== */
+document.addEventListener('click', (event) => {
+  const target = event.target;
+  if (!target || !target.closest) return;
+
+  if (target.closest('.secret-heart') || target.closest('.read-secret-card')) {
+    const view = document.getElementById('secretView');
+    if (view) {
+      view.style.zIndex = '10000';
+      view.style.background = 'rgba(247, 240, 232, 0.94)';
+    }
+  }
+}, true);
