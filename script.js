@@ -1028,6 +1028,7 @@ async function loadOurDay() {
 // 9. BUCKET LIST
 let bucketItems = [];
 let currentBucketFilter = 'all';
+let currentBucketItem = null;
 
 async function loadBucketList() {
   const { data, error } = await supabaseClient.from('bucket_list').select('*').order('created_at', { ascending: false });
@@ -1075,6 +1076,7 @@ function renderBucketList() {
   items.forEach(item => {
     const card = document.createElement('div');
     card.className = 'bucket-card';
+    if (item.is_done === true) card.classList.add('is-done');
     card.onclick = () => openBucketItem(item);
 
     // links: Bild oder Pinguin
@@ -1106,11 +1108,20 @@ function renderBucketList() {
 
     card.appendChild(thumb);
     card.appendChild(textWrap);
+
+    if (item.is_done === true) {
+      const doneBadge = document.createElement('div');
+      doneBadge.className = 'bucket-done-badge';
+      doneBadge.textContent = '✓ done';
+      card.appendChild(doneBadge);
+    }
+
     container.appendChild(card);
   });
 }
 
 function openBucketItem(item) {
+  currentBucketItem = item;
   document.getElementById('bucketViewTitle').textContent = item.title || '';
   document.getElementById('bucketViewPlace').textContent = item.place ? `📍 ${item.place}` : '';
 
@@ -1127,6 +1138,7 @@ function openBucketItem(item) {
   }
 
   document.getElementById('bucketViewDetails').textContent = item.details || '';
+  renderBucketDoneState(item);
   document.getElementById('bucketView').classList.add('open');
 }
 
@@ -1170,4 +1182,91 @@ window.submitBucketItem = async () => {
   updateBucketFilterButtons();
   loadBucketList();
   switchTab('bucketlist');
+};
+
+// 9b. ERLEDIGT + ERINNERUNGSFOTOS
+function renderBucketDoneState(item) {
+  const doneBtn = document.getElementById('bucketDoneBtn');
+  const photosSection = document.getElementById('bucketPhotosSection');
+  const photosWrap = document.getElementById('bucketPhotos');
+  const isDone = item.is_done === true;
+
+  if (doneBtn) {
+    doneBtn.textContent = isDone ? '↩ not done yet' : '✓ mark as done';
+    doneBtn.classList.toggle('active', !isDone);
+  }
+
+  if (photosSection) {
+    photosSection.style.display = isDone ? 'block' : 'none';
+  }
+
+  if (!photosWrap) return;
+  photosWrap.innerHTML = '';
+
+  const photos = Array.isArray(item.photos) ? item.photos : [];
+  photos.forEach(url => {
+    const img = document.createElement('img');
+    img.src = url;
+    img.alt = item.title || '';
+    img.onclick = () => openImageViewer(url);
+    photosWrap.appendChild(img);
+  });
+}
+
+function syncCurrentBucketItem() {
+  if (!currentBucketItem) return;
+  const fresh = bucketItems.find(entry => entry.id === currentBucketItem.id);
+  if (fresh) currentBucketItem = fresh;
+}
+
+window.toggleBucketDone = async () => {
+  if (!currentBucketItem) return;
+
+  const newValue = !(currentBucketItem.is_done === true);
+  const { error } = await supabaseClient
+    .from('bucket_list')
+    .update({ is_done: newValue })
+    .eq('id', currentBucketItem.id);
+
+  if (error) return alert(error.message);
+
+  currentBucketItem.is_done = newValue;
+  renderBucketDoneState(currentBucketItem);
+
+  await loadBucketList();
+  syncCurrentBucketItem();
+};
+
+window.submitBucketPhotos = async () => {
+  if (!currentBucketItem) return;
+
+  if (currentBucketItem.is_done !== true) {
+    return alert('Mark it as done first 💕');
+  }
+
+  const input = document.getElementById('bucket-photo-input');
+  const files = input && input.files ? Array.from(input.files) : [];
+  if (files.length === 0) return alert('Please choose at least one photo 📸');
+
+  const photos = Array.isArray(currentBucketItem.photos) ? currentBucketItem.photos.slice() : [];
+
+  for (const file of files) {
+    const compressed = await compressImage(file, 1200, 0.65);
+    const url = await uploadImage(compressed);
+    if (url) photos.push(url);
+  }
+
+  const { error } = await supabaseClient
+    .from('bucket_list')
+    .update({ photos: photos })
+    .eq('id', currentBucketItem.id);
+
+  if (error) return alert(error.message);
+
+  currentBucketItem.photos = photos;
+  if (input) input.value = '';
+  renderBucketDoneState(currentBucketItem);
+
+  await loadBucketList();
+  syncCurrentBucketItem();
 };
