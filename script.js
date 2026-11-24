@@ -13,9 +13,11 @@ const ROLE_EMAILS = {
   Sebo: ''
 };
 
-// 1d. NEU: "ANGEMELDET BLEIBEN"
+// 1d. "ANGEMELDET BLEIBEN" / "PASSWORT MERKEN"
 const REMEMBER_KEY = 'luvu_remember';        // '1' = angemeldet bleiben, '0' = nicht
 const TAB_SESSION_KEY = 'luvu_tab_active';   // lebt nur solange der Tab / die App offen ist
+const SAVE_PW_KEY = 'luvu_save_pw';          // '1' = Passwort merken, '0' = nicht
+const PW_STORE_PREFIX = 'luvu_pw_';          // Ablage für das verschlüsselte Passwort
 
 let currentRole = null;
 
@@ -49,6 +51,103 @@ function setLoginMessage(text, isError = true) {
   if (!el) return;
   el.textContent = text || '';
   el.style.color = isError ? '#c2557a' : '#8a9bb0';
+}
+
+// 1e. NEU: PASSWORT-SPEICHER (AES-GCM, Schlüssel bleibt im Browser)
+function openKeyDb() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open('luvu-secure', 1);
+    req.onupgradeneeded = () => {
+      if (!req.result.objectStoreNames.contains('keys')) {
+        req.result.createObjectStore('keys');
+      }
+    };
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+async function getCryptoKey() {
+  const db = await openKeyDb();
+  const existing = await new Promise((resolve, reject) => {
+    const tx = db.transaction('keys', 'readonly');
+    const r = tx.objectStore('keys').get('pwkey');
+    r.onsuccess = () => resolve(r.result);
+    r.onerror = () => reject(r.error);
+  });
+  if (existing) return existing;
+
+  // Nicht-exportierbarer Schlüssel: kann nicht ausgelesen werden, nur benutzt
+  const key = await crypto.subtle.generateKey({ name: 'AES-GCM', length: 256 }, false, ['encrypt', 'decrypt']);
+  await new Promise((resolve, reject) => {
+    const tx = db.transaction('keys', 'readwrite');
+    tx.objectStore('keys').put(key, 'pwkey');
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+  return key;
+}
+
+async function savePasswordLocally(role, password) {
+  try {
+    if (!password) return;
+    const key = await getCryptoKey();
+    const iv = crypto.getRandomValues(new Uint8Array(12));
+    const encoded = new TextEncoder().encode(password);
+    const cipher = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, encoded);
+    const payload = {
+      iv: Array.from(iv),
+      data: Array.from(new Uint8Array(cipher))
+    };
+    localStorage.setItem(PW_STORE_PREFIX + role, JSON.stringify(payload));
+  } catch (e) {
+    // z. B. kein https -> dann wird eben nicht gemerkt
+    console.warn('Password could not be stored:', e);
+  }
+}
+
+async function loadPasswordLocally(role) {
+  try {
+    const raw = localStorage.getItem(PW_STORE_PREFIX + role);
+    if (!raw) return null;
+    const payload = JSON.parse(raw);
+    const key = await getCryptoKey();
+    const plain = await crypto.subtle.decrypt(
+      { name: 'AES-GCM', iv: new Uint8Array(payload.iv) },
+      key,
+      new Uint8Array(payload.data)
+    );
+    return new TextDecoder().decode(plain);
+  } catch (e) {
+    return null;
+  }
+}
+
+function clearStoredPassword(role) {
+  localStorage.removeItem(PW_STORE_PREFIX + role);
+}
+
+function shouldRememberPassword() {
+  const savedChoice = localStorage.getItem(SAVE_PW_KEY);
+  return savedChoice === null ? true : savedChoice === '1';
+}
+
+// Füllt das Passwortfeld mit dem gemerkten Passwort der Rolle
+async function fillStoredPassword(role) {
+  const pwInput = document.getElementById('password-input');
+  const pwBox = document.getElementById('remember-password');
+  if (!pwInput) return;
+
+  const remember = shouldRememberPassword();
+  if (pwBox) pwBox.checked = remember;
+
+  pwInput.value = '';
+  if (!remember) return;
+
+  const stored = await loadPasswordLocally(role);
+  if (stored && currentRole === role && pwInput.value === '') {
+    pwInput.value = stored;
+  }
 }
 
 // 2. TAB WECHSEL
@@ -121,12 +220,15 @@ window.setRole = (role) => {
     }
   }
 
-  // NEU: letzte "angemeldet bleiben"-Einstellung wiederherstellen
+  // letzte "angemeldet bleiben"-Einstellung wiederherstellen
   const rememberBox = document.getElementById('remember-me');
   if (rememberBox) {
     const savedChoice = localStorage.getItem(REMEMBER_KEY);
     rememberBox.checked = savedChoice === null ? true : savedChoice === '1';
   }
+
+  // NEU: gemerktes Passwort einsetzen
+  fillStoredPassword(role);
 
   setLoginMessage(`Logging in as ${role} ${role === 'Aly' ? '👩' : '👨'}`, false);
 };
@@ -202,11 +304,21 @@ async function doLogin() {
     if (metaError) return setLoginMessage(metaError.message);
   }
 
-  // NEU: "angemeldet bleiben" merken
+  // "angemeldet bleiben" merken
   const rememberBox = document.getElementById('remember-me');
   const keepLoggedIn = rememberBox ? rememberBox.checked : true;
   localStorage.setItem(REMEMBER_KEY, keepLoggedIn ? '1' : '0');
   sessionStorage.setItem(TAB_SESSION_KEY, '1');
+
+  // NEU: "Passwort merken"
+  const pwBox = document.getElementById('remember-password');
+  const rememberPw = pwBox ? pwBox.checked : false;
+  localStorage.setItem(SAVE_PW_KEY, rememberPw ? '1' : '0');
+  if (rememberPw) {
+    await savePasswordLocally(currentRole, password);
+  } else {
+    clearStoredPassword(currentRole);
+  }
 
   localStorage.setItem('luvu_email_' + currentRole, email);
   localStorage.setItem('luvu_role', currentRole);
@@ -240,7 +352,7 @@ async function doSignup() {
   }
 }
 
-// NEU: Start-Logik (Auto-Login nur wenn "angemeldet bleiben" aktiv war)
+// Start-Logik (Auto-Login nur wenn "angemeldet bleiben" aktiv war)
 async function initAuth() {
   let session = null;
   try {
