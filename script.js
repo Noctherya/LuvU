@@ -262,13 +262,23 @@ async function deleteOurDayEntry(id, entryElement) {
 }
 
 // 2. TAB WECHSEL
+// NEU: oben nur Inbox / Sent, der Rest steckt im "More"-Menü
+const MORE_TABS = ['myday', 'secrets', 'us'];
+
+function closeMoreMenu() {
+  const menu = document.getElementById('more-menu');
+  if (menu) menu.classList.remove('open');
+}
+
+window.toggleMoreMenu = (event) => {
+  const menu = document.getElementById('more-menu');
+  if (!menu) return;
+  menu.classList.toggle('open');
+  if (event) event.stopPropagation();
+};
+
 window.switchTab = (tabName) => {
   document.querySelectorAll('.page').forEach(page => page.classList.remove('active'));
-
-  ['inbox', 'sent', 'myday', 'secrets', 'us'].forEach(name => {
-    const btn = document.getElementById('tab-' + name);
-    if (btn) btn.classList.remove('active');
-  });
 
   const pageMap = {
     inbox: 'page-inbox',
@@ -284,8 +294,21 @@ window.switchTab = (tabName) => {
     if (page) page.classList.add('active');
   }
 
-  const tabBtn = document.getElementById('tab-' + tabName);
-  if (tabBtn) tabBtn.classList.add('active');
+  // Oben leuchten nur Inbox / Sent, der More-Button bei den übrigen Seiten
+  const inboxBtn = document.getElementById('tab-inbox');
+  const sentBtn = document.getElementById('tab-sent');
+  const moreBtn = document.getElementById('tab-more');
+
+  if (inboxBtn) inboxBtn.classList.toggle('active', tabName === 'inbox');
+  if (sentBtn) sentBtn.classList.toggle('active', tabName === 'sent');
+  if (moreBtn) moreBtn.classList.toggle('active', MORE_TABS.indexOf(tabName) !== -1);
+
+  // Eintrag im More-Menü markieren
+  document.querySelectorAll('.more-item[data-tab]').forEach(item => {
+    item.classList.toggle('active', item.getAttribute('data-tab') === tabName);
+  });
+
+  closeMoreMenu();
 
   if (tabName === 'inbox' || tabName === 'sent') loadLetters();
   if (tabName === 'secrets') loadSecrets();
@@ -536,6 +559,16 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  // NEU: More-Menü schließt sich beim Klick daneben
+  document.addEventListener('click', (event) => {
+    const menu = document.getElementById('more-menu');
+    if (!menu || !menu.classList.contains('open')) return;
+    if (menu.contains(event.target)) return;
+    const moreBtn = document.getElementById('tab-more');
+    if (moreBtn && moreBtn.contains(event.target)) return;
+    closeMoreMenu();
+  });
+
   initAuth();
 });
 
@@ -597,7 +630,7 @@ window.submitSecret = async () => {
 };
 
 // 8. LADEN & ANZEIGEN
-// NEU: Briefe werden auf zwei Bereiche verteilt (Inbox / Sent)
+// Briefe werden auf zwei Bereiche verteilt (Inbox / Sent)
 async function loadLetters() {
   const { data, error } = await supabaseClient.from('letters').select('*').order('created_at', { ascending: false });
   if (error) return;
