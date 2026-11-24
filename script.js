@@ -316,7 +316,7 @@ function openImageViewer(src) {
 
 // 2. TAB WECHSEL
 // Oben nur Inbox / Sent / More, der Rest steckt im "More"-Menü
-const MORE_TABS = ['myday', 'secrets', 'us'];
+const MORE_TABS = ['myday', 'secrets', 'us', 'bucketlist'];
 
 function closeMoreMenu() {
   const menu = document.getElementById('more-menu');
@@ -337,7 +337,8 @@ window.switchTab = (tabName) => {
     sent: 'page-sent',
     myday: 'page-myday',
     secrets: 'page-secrets',
-    us: 'page-us'
+    us: 'page-us',
+    bucketlist: 'page-bucketlist'
   };
 
   const pageId = pageMap[tabName];
@@ -366,6 +367,7 @@ window.switchTab = (tabName) => {
   if (tabName === 'secrets') loadSecrets();
   if (tabName === 'us') loadUs();
   if (tabName === 'myday') loadOurDay();
+  if (tabName === 'bucketlist') loadBucketList();
 };
 
 // 3. FAB & FORMULARE ÖFFNEN
@@ -384,6 +386,7 @@ window.openAddModal = (type) => {
   if (type === 'us') document.getElementById('addUsView').classList.add('open');
   if (type === 'ourday') document.getElementById('addOurDayView').classList.add('open');
   if (type === 'secret') document.getElementById('addSecretView').classList.add('open');
+  if (type === 'bucket') document.getElementById('addBucketView').classList.add('open');
 };
 
 // 4. ROLLE & APP ANZEIGEN
@@ -438,6 +441,7 @@ function showApp() {
       <button class="fab-item" onclick="openAddModal('us')">📸 Us Moment</button>
       <button class="fab-item" onclick="openAddModal('ourday')">☀️ Our Day</button>
       <button class="fab-item" onclick="openAddModal('secret')">💌 Secret</button>
+      <button class="fab-item" onclick="openAddModal('bucket')">🪣 Bucket List</button>
     `;
   } else if (currentRole === 'Sebo') {
     fabMenu.innerHTML = `
@@ -445,6 +449,7 @@ function showApp() {
       <button class="fab-item" onclick="openAddModal('us')">📸 Us Moment</button>
       <button class="fab-item" onclick="openAddModal('ourday')">☀️ Our Day</button>
       <button class="fab-item" onclick="openAddModal('secret')">💌 Secret</button>
+      <button class="fab-item" onclick="openAddModal('bucket')">🪣 Bucket List</button>
     `;
   }
   
@@ -452,6 +457,7 @@ function showApp() {
   loadSecrets();
   loadUs();
   loadOurDay();
+  loadBucketList();
 }
 
 window.logout = async () => {
@@ -653,7 +659,7 @@ function loadImageElement(src) {
   });
 }
 
-// NEU: verkleinert auf max. 1200 px Breite und komprimiert als JPEG (75 %)
+// verkleinert auf max. 1200 px Breite und komprimiert als JPEG (75 %)
 async function compressImage(file, maxWidth = 1200, quality = 0.75) {
   try {
     const dataUrl = await readFileAsDataURL(file);
@@ -946,7 +952,7 @@ async function loadOurDay() {
       const imagesContainer = document.getElementById('dayViewImages');
       imagesContainer.innerHTML = '';
 
-      // NEU: zwei feste Spalten -> Aly links, Sebo rechts
+      // zwei feste Spalten -> Aly links, Sebo rechts
       const columns = [
         { entries: entries.filter(entry => entry.sender !== 'Sebo') },
         { entries: entries.filter(entry => entry.sender === 'Sebo') }
@@ -1018,3 +1024,150 @@ async function loadOurDay() {
     container.appendChild(div);
   }
 }
+
+// 9. BUCKET LIST
+let bucketItems = [];
+let currentBucketFilter = 'all';
+
+async function loadBucketList() {
+  const { data, error } = await supabaseClient.from('bucket_list').select('*').order('created_at', { ascending: false });
+  if (error) {
+    console.warn('Bucket List konnte nicht geladen werden:', error.message);
+    return;
+  }
+  bucketItems = data || [];
+  renderBucketList();
+}
+
+function updateBucketFilterButtons() {
+  document.querySelectorAll('#bucketFilter .nav-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.getAttribute('data-place') === currentBucketFilter);
+  });
+}
+
+window.filterBucketList = (place) => {
+  currentBucketFilter = place || 'all';
+  updateBucketFilterButtons();
+  renderBucketList();
+};
+
+function renderBucketList() {
+  const container = document.getElementById('bucketList');
+  if (!container) return;
+  container.innerHTML = '';
+
+  const items = bucketItems.filter(item => {
+    if (currentBucketFilter === 'all') return true;
+    return String(item.place || '') === currentBucketFilter;
+  });
+
+  if (items.length === 0) {
+    const empty = document.createElement('p');
+    empty.className = 'subtitle';
+    empty.style.marginTop = '40px';
+    empty.textContent = currentBucketFilter === 'all'
+      ? 'nothing on the list yet 🐧'
+      : `nothing for ${currentBucketFilter} yet 🐧`;
+    container.appendChild(empty);
+    return;
+  }
+
+  items.forEach(item => {
+    const card = document.createElement('div');
+    card.className = 'bucket-card';
+    card.onclick = () => openBucketItem(item);
+
+    // links: Bild oder Pinguin
+    const thumb = document.createElement('div');
+    thumb.className = 'bucket-thumb';
+    if (item.image_url) {
+      const img = document.createElement('img');
+      img.src = item.image_url;
+      img.alt = item.title || '';
+      thumb.appendChild(img);
+    } else {
+      thumb.classList.add('bucket-thumb-emoji');
+      thumb.textContent = '🐧';
+    }
+
+    const textWrap = document.createElement('div');
+    textWrap.className = 'bucket-text';
+
+    const title = document.createElement('div');
+    title.className = 'bucket-title';
+    title.textContent = item.title || '';
+
+    const place = document.createElement('div');
+    place.className = 'bucket-place';
+    place.textContent = item.place ? `📍 ${item.place}` : '';
+
+    textWrap.appendChild(title);
+    textWrap.appendChild(place);
+
+    card.appendChild(thumb);
+    card.appendChild(textWrap);
+    container.appendChild(card);
+  });
+}
+
+function openBucketItem(item) {
+  document.getElementById('bucketViewTitle').textContent = item.title || '';
+  document.getElementById('bucketViewPlace').textContent = item.place ? `📍 ${item.place}` : '';
+
+  const img = document.getElementById('bucketViewImage');
+  if (item.image_url) {
+    img.src = item.image_url;
+    img.style.display = 'block';
+    img.style.cursor = 'zoom-in';
+    img.onclick = () => openImageViewer(item.image_url);
+  } else {
+    img.removeAttribute('src');
+    img.style.display = 'none';
+    img.onclick = null;
+  }
+
+  document.getElementById('bucketViewDetails').textContent = item.details || '';
+  document.getElementById('bucketView').classList.add('open');
+}
+
+window.submitBucketItem = async () => {
+  const fileInput = document.getElementById('bucket-image');
+  const titleInput = document.getElementById('bucket-title');
+  const detailsInput = document.getElementById('bucket-details');
+  const placeInput = document.getElementById('bucket-place');
+
+  const file = fileInput.files[0];
+  const title = titleInput.value.trim();
+  const details = detailsInput.value.trim();
+  const place = placeInput.value;
+
+  if (!title) return alert('Please add an activity 💌');
+  if (!place) return alert('Please choose a place 📍');
+
+  let imageUrl = null;
+  if (file) {
+    const compressed = await compressImage(file, 1000, 0.8);
+    imageUrl = await uploadImage(compressed);
+    if (!imageUrl) return;
+  }
+
+  const { error } = await supabaseClient.from('bucket_list').insert([{
+    title,
+    details,
+    place,
+    image_url: imageUrl,
+    sender: currentRole
+  }]);
+
+  if (error) return alert(error.message);
+
+  document.getElementById('addBucketView').classList.remove('open');
+  titleInput.value = '';
+  detailsInput.value = '';
+  fileInput.value = '';
+
+  currentBucketFilter = 'all';
+  updateBucketFilterButtons();
+  loadBucketList();
+  switchTab('bucketlist');
+};
