@@ -261,7 +261,7 @@ async function deleteOurDayEntry(id, entryElement) {
   loadOurDay();
 }
 
-// 1i. NEU: BILD IN GROSS (Lightbox)
+// 1i. BILD IN GROSS (Lightbox)
 function openImageViewer(src) {
   if (!src) return;
 
@@ -635,6 +635,55 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // 6. HELFER: BILD HOCHLADEN
+function readFileAsDataURL(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = () => reject(reader.error);
+    reader.readAsDataURL(file);
+  });
+}
+
+function loadImageElement(src) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = () => reject(new Error('Bild konnte nicht geladen werden'));
+    img.src = src;
+  });
+}
+
+// NEU: verkleinert auf max. 1200 px Breite und komprimiert als JPEG (75 %)
+async function compressImage(file, maxWidth = 1200, quality = 0.75) {
+  try {
+    const dataUrl = await readFileAsDataURL(file);
+    const img = await loadImageElement(dataUrl);
+
+    const scale = img.width > maxWidth ? maxWidth / img.width : 1;
+    const width = Math.round(img.width * scale);
+    const height = Math.round(img.height * scale);
+
+    const canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = height;
+
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, width, height);
+    ctx.drawImage(img, 0, 0, width, height);
+
+    const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', quality));
+    if (!blob) return file;
+
+    const baseName = file.name.replace(/\.[^.]+$/, '') || 'image';
+    return new File([blob], `${baseName}.jpg`, { type: 'image/jpeg' });
+  } catch (e) {
+    // z. B. HEIC/RAW, das der Browser nicht zeichnen kann -> Original verwenden
+    console.warn('Komprimierung fehlgeschlagen, Original wird benutzt:', e);
+    return file;
+  }
+}
+
 async function uploadImage(file) {
   if (!file) return null;
   const fileExt = file.name.split('.').pop();
@@ -661,6 +710,7 @@ window.submitLetter = async () => {
   }
 };
 
+// "Us"-Bilder bleiben in voller Qualität
 window.submitUsMoment = async () => {
   const file = document.getElementById('us-image').files[0];
   if (!file) return alert("Bitte Bild auswählen!");
@@ -671,13 +721,17 @@ window.submitUsMoment = async () => {
   else { document.getElementById('addUsView').classList.remove('open'); loadUs(); }
 };
 
+// "Our Day"-Bilder werden vor dem Upload komprimiert (1200 px / 75 %)
 window.submitOurDay = async () => {
   const date = document.getElementById('ourday-date').value;
   const file = document.getElementById('ourday-image').files[0];
   const text = document.getElementById('ourday-text').value;
   if (!date || !file || !text) return alert("Bitte alles ausfüllen!");
-  const imgUrl = await uploadImage(file);
+
+  const compressed = await compressImage(file, 1200, 0.75);
+  const imgUrl = await uploadImage(compressed);
   if (!imgUrl) return;
+
   const { error } = await supabaseClient.from('our_day').insert([{ date, image_url: imgUrl, text, sender: currentRole }]);
   if (error) alert(error.message);
   else { document.getElementById('addOurDayView').classList.remove('open'); loadOurDay(); }
@@ -863,7 +917,7 @@ async function loadUs() {
   });
 }
 
-// jeder Our-Day-Eintrag mit X zum Löschen, Tippen aufs Bild = Großansicht
+// Our-Day-Einträge: Aly links, Sebo rechts – je Spalte untereinander
 async function loadOurDay() {
   const container = document.getElementById('daysList');
   if(!container) return;
@@ -888,44 +942,72 @@ async function loadOurDay() {
     
     div.onclick = () => {
       document.getElementById('dayViewDate').textContent = `📅 ${date}`;
-      
+
       const imagesContainer = document.getElementById('dayViewImages');
       imagesContainer.innerHTML = '';
-      
-      entries.forEach(entry => {
-        const imgWrap = document.createElement('div');
-        imgWrap.className = 'day-img-wrapper';
-        imgWrap.style.position = 'relative';
 
-        const img = document.createElement('img');
-        img.src = entry.image_url;
-        img.className = 'day-image-detail';
-        img.style.cursor = 'zoom-in';
-        img.onclick = (event) => {
-          event.stopPropagation();
-          openImageViewer(entry.image_url);
-        };
+      // NEU: zwei feste Spalten -> Aly links, Sebo rechts
+      const columns = [
+        { entries: entries.filter(entry => entry.sender !== 'Sebo') },
+        { entries: entries.filter(entry => entry.sender === 'Sebo') }
+      ];
 
-        const sender = document.createElement('span');
-        sender.className = 'day-img-sender';
-        sender.textContent = entry.sender;
+      columns.forEach(column => {
+        if (column.entries.length === 0) return;
 
-        const entryText = document.createElement('p');
-        entryText.className = 'day-img-text';
-        entryText.textContent = entry.text;
+        const col = document.createElement('div');
+        col.style.flex = '1 1 0';
+        col.style.minWidth = '0';
+        col.style.display = 'flex';
+        col.style.flexDirection = 'column';
+        col.style.alignItems = 'stretch';
+        col.style.gap = '16px';
 
-        const delBtn = createDeleteX(() => deleteOurDayEntry(entry.id, imgWrap));
-        delBtn.style.top = '8px';
-        delBtn.style.right = '8px';
+        // ältester Eintrag oben, neuester unten
+        const sorted = column.entries.slice().sort((a, b) => {
+          return String(a.created_at || '').localeCompare(String(b.created_at || ''));
+        });
 
-        imgWrap.appendChild(img);
-        imgWrap.appendChild(delBtn);
-        imgWrap.appendChild(sender);
-        imgWrap.appendChild(entryText);
-        imagesContainer.appendChild(imgWrap);
+        sorted.forEach(entry => {
+          const imgWrap = document.createElement('div');
+          imgWrap.className = 'day-img-wrapper';
+          imgWrap.style.position = 'relative';
+          imgWrap.style.flex = '0 0 auto';
+          imgWrap.style.width = '100%';
+          imgWrap.style.minWidth = '0';
+
+          const img = document.createElement('img');
+          img.src = entry.image_url;
+          img.className = 'day-image-detail';
+          img.style.cursor = 'zoom-in';
+          img.onclick = (event) => {
+            event.stopPropagation();
+            openImageViewer(entry.image_url);
+          };
+
+          const sender = document.createElement('span');
+          sender.className = 'day-img-sender';
+          sender.textContent = entry.sender;
+
+          const entryText = document.createElement('p');
+          entryText.className = 'day-img-text';
+          entryText.textContent = entry.text;
+
+          const delBtn = createDeleteX(() => deleteOurDayEntry(entry.id, imgWrap));
+          delBtn.style.top = '8px';
+          delBtn.style.right = '8px';
+
+          imgWrap.appendChild(img);
+          imgWrap.appendChild(delBtn);
+          imgWrap.appendChild(sender);
+          imgWrap.appendChild(entryText);
+          col.appendChild(imgWrap);
+        });
+
+        imagesContainer.appendChild(col);
       });
 
-      document.getElementById('dayViewText').textContent = ''; 
+      document.getElementById('dayViewText').textContent = '';
       document.getElementById('dayView').classList.add('open');
     };
 
