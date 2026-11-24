@@ -13,6 +13,11 @@ const ROLE_EMAILS = {
   Sebo: ''
 };
 
+// TMDB (The Movie Database) für Titel-Suche + Cover
+// Key holen: https://www.themoviedb.org/settings/api -> "API Key (v3 auth)"
+// Leer lassen = es funktioniert alles, nur ohne automatisches Cover.
+const TMDB_API_KEY = '';
+
 // 1d. "ANGEMELDET BLEIBEN" / "PASSWORT MERKEN"
 const REMEMBER_KEY = 'luvu_remember';        // '1' = angemeldet bleiben, '0' = nicht
 const TAB_SESSION_KEY = 'luvu_tab_active';   // lebt nur solange der Tab / die App offen ist
@@ -316,7 +321,7 @@ function openImageViewer(src) {
 
 // 2. TAB WECHSEL
 // Oben nur Inbox / Sent / More, der Rest steckt im "More"-Menü
-const MORE_TABS = ['myday', 'secrets', 'us', 'bucketlist'];
+const MORE_TABS = ['myday', 'secrets', 'us', 'bucketlist', 'watchlist'];
 
 function closeMoreMenu() {
   const menu = document.getElementById('more-menu');
@@ -338,7 +343,8 @@ window.switchTab = (tabName) => {
     myday: 'page-myday',
     secrets: 'page-secrets',
     us: 'page-us',
-    bucketlist: 'page-bucketlist'
+    bucketlist: 'page-bucketlist',
+    watchlist: 'page-watchlist'
   };
 
   const pageId = pageMap[tabName];
@@ -368,6 +374,7 @@ window.switchTab = (tabName) => {
   if (tabName === 'us') loadUs();
   if (tabName === 'myday') loadOurDay();
   if (tabName === 'bucketlist') loadBucketList();
+  if (tabName === 'watchlist') loadWatchList();
 };
 
 // 3. FAB & FORMULARE ÖFFNEN
@@ -387,6 +394,7 @@ window.openAddModal = (type) => {
   if (type === 'ourday') document.getElementById('addOurDayView').classList.add('open');
   if (type === 'secret') document.getElementById('addSecretView').classList.add('open');
   if (type === 'bucket') document.getElementById('addBucketView').classList.add('open');
+  if (type === 'watch') document.getElementById('addWatchView').classList.add('open');
 };
 
 // 4. ROLLE & APP ANZEIGEN
@@ -442,6 +450,7 @@ function showApp() {
       <button class="fab-item" onclick="openAddModal('ourday')">☀️ Our Day</button>
       <button class="fab-item" onclick="openAddModal('secret')">💌 Secret</button>
       <button class="fab-item" onclick="openAddModal('bucket')">🪣 Bucket List</button>
+      <button class="fab-item" onclick="openAddModal('watch')">🍿 Watchlist</button>
     `;
   } else if (currentRole === 'Sebo') {
     fabMenu.innerHTML = `
@@ -450,6 +459,7 @@ function showApp() {
       <button class="fab-item" onclick="openAddModal('ourday')">☀️ Our Day</button>
       <button class="fab-item" onclick="openAddModal('secret')">💌 Secret</button>
       <button class="fab-item" onclick="openAddModal('bucket')">🪣 Bucket List</button>
+      <button class="fab-item" onclick="openAddModal('watch')">🍿 Watchlist</button>
     `;
   }
   
@@ -458,6 +468,7 @@ function showApp() {
   loadUs();
   loadOurDay();
   loadBucketList();
+  loadWatchList();
 }
 
 window.logout = async () => {
@@ -1320,4 +1331,323 @@ window.deleteBucketItem = async () => {
   currentBucketItem = null;
   document.getElementById('bucketView').classList.remove('open');
   loadBucketList();
+};
+
+// 10. WATCHLIST (Serien / Filme / Anime)
+let watchItems = [];
+let selectedWatchResult = null;
+
+async function loadWatchList() {
+  const { data, error } = await supabaseClient.from('watchlist').select('*').order('created_at', { ascending: false });
+  if (error) {
+    console.warn('Watchlist konnte nicht geladen werden:', error.message);
+    return;
+  }
+  watchItems = data || [];
+  renderWatchList();
+}
+
+function buildRatingRow(item, name) {
+  const row = document.createElement('div');
+  row.className = 'watch-rating-row';
+
+  const label = document.createElement('span');
+  label.className = 'watch-name';
+  label.textContent = name;
+
+  const stars = document.createElement('span');
+  stars.className = 'watch-stars';
+
+  const value = name === 'Aly' ? item.rating_aly : item.rating_sebo;
+  const canRate = item.is_watched === true && name === currentRole;
+
+  for (let i = 1; i <= 5; i++) {
+    const star = document.createElement('span');
+    star.className = 'watch-star';
+    const filled = value && i <= value;
+    star.textContent = filled ? '★' : '☆';
+    if (filled) star.classList.add('filled');
+    if (canRate) {
+      star.classList.add('clickable');
+      star.onclick = (event) => {
+        event.stopPropagation();
+        setWatchRating(item, i);
+      };
+    }
+    stars.appendChild(star);
+  }
+
+  row.appendChild(label);
+  row.appendChild(stars);
+  return row;
+}
+
+function renderWatchList() {
+  const container = document.getElementById('watchList');
+  if (!container) return;
+  container.innerHTML = '';
+
+  if (watchItems.length === 0) {
+    const empty = document.createElement('p');
+    empty.className = 'subtitle';
+    empty.style.marginTop = '40px';
+    empty.textContent = 'nothing on the watchlist yet 🍿';
+    container.appendChild(empty);
+    return;
+  }
+
+  watchItems.forEach(item => {
+    const card = document.createElement('div');
+    card.className = 'watch-card';
+    if (item.is_watched !== true) card.classList.add('not-watched');
+
+    // links: Cover (oder Filmklappe)
+    const poster = document.createElement('div');
+    poster.className = 'watch-poster';
+    if (item.poster_url) {
+      const img = document.createElement('img');
+      img.src = item.poster_url;
+      img.alt = item.title || '';
+      poster.appendChild(img);
+    } else {
+      poster.textContent = '🎬';
+    }
+
+    const info = document.createElement('div');
+    info.className = 'watch-info';
+
+    const title = document.createElement('div');
+    title.className = 'watch-title';
+    title.textContent = item.title || '';
+
+    const meta = document.createElement('div');
+    meta.className = 'watch-meta';
+    const metaParts = [item.is_watched === true ? 'watched ✓' : 'to watch'];
+    if (item.year) metaParts.push(item.year);
+    if (item.media_type === 'tv') metaParts.push('Series');
+    else if (item.media_type === 'movie') metaParts.push('Movie');
+    meta.textContent = metaParts.join(' · ');
+
+    const ratings = document.createElement('div');
+    ratings.className = 'watch-ratings';
+    ratings.appendChild(buildRatingRow(item, 'Aly'));
+    ratings.appendChild(buildRatingRow(item, 'Sebo'));
+
+    const watchedBtn = document.createElement('button');
+    watchedBtn.className = 'watch-watched-btn';
+    if (item.is_watched === true) watchedBtn.classList.add('is-on');
+    watchedBtn.textContent = item.is_watched === true ? '↩ not watched yet' : '✓ mark as watched';
+    watchedBtn.onclick = (event) => {
+      event.stopPropagation();
+      toggleWatchWatched(item);
+    };
+
+    info.appendChild(title);
+    info.appendChild(meta);
+    info.appendChild(ratings);
+    info.appendChild(watchedBtn);
+
+    card.appendChild(poster);
+    card.appendChild(info);
+    container.appendChild(card);
+  });
+}
+
+async function setWatchRating(item, value) {
+  const column = currentRole === 'Aly' ? 'rating_aly' : 'rating_sebo';
+  const payload = {};
+  payload[column] = value;
+
+  const { error } = await supabaseClient.from('watchlist').update(payload).eq('id', item.id);
+  if (error) return alert(error.message);
+
+  await loadWatchList();
+}
+
+async function toggleWatchWatched(item) {
+  const { error } = await supabaseClient
+    .from('watchlist')
+    .update({ is_watched: item.is_watched !== true })
+    .eq('id', item.id);
+
+  if (error) return alert(error.message);
+
+  await loadWatchList();
+}
+
+// --- TMDB-Suche ---------------------------------------------------------
+function tmdbConfigured() {
+  return typeof TMDB_API_KEY === 'string' && TMDB_API_KEY.trim().length > 0;
+}
+
+function tmdbPosterUrl(path) {
+  return path ? 'https://image.tmdb.org/t/p/w342' + path : null;
+}
+
+async function tmdbSearch(query) {
+  const key = TMDB_API_KEY.trim();
+  const isBearer = key.indexOf('eyJ') === 0;
+  const base = 'https://api.themoviedb.org/3/search/multi?language=en-US&include_adult=false&query=' + encodeURIComponent(query);
+  const url = isBearer ? base : base + '&api_key=' + encodeURIComponent(key);
+  const options = isBearer ? { headers: { Authorization: 'Bearer ' + key } } : {};
+
+  const response = await fetch(url, options);
+  if (!response.ok) throw new Error('TMDB ' + response.status);
+
+  const json = await response.json();
+  return (json.results || []).filter(r => r.media_type === 'movie' || r.media_type === 'tv');
+}
+
+window.searchWatchTitle = async () => {
+  const input = document.getElementById('watch-search');
+  const resultsBox = document.getElementById('watch-results');
+  if (!input || !resultsBox) return;
+
+  const query = (input.value || '').trim();
+  resultsBox.innerHTML = '';
+  if (!query) return;
+
+  if (!tmdbConfigured()) {
+    const hint = document.createElement('p');
+    hint.className = 'subtitle';
+    hint.style.fontSize = '0.85rem';
+    hint.textContent = 'no TMDB key – the title will be saved without a cover';
+    resultsBox.appendChild(hint);
+    return;
+  }
+
+  const loading = document.createElement('p');
+  loading.className = 'subtitle';
+  loading.style.fontSize = '0.85rem';
+  loading.textContent = 'searching…';
+  resultsBox.appendChild(loading);
+
+  try {
+    const results = await tmdbSearch(query);
+    resultsBox.innerHTML = '';
+
+    if (results.length === 0) {
+      const none = document.createElement('p');
+      none.className = 'subtitle';
+      none.style.fontSize = '0.85rem';
+      none.textContent = 'nothing found 🐧';
+      resultsBox.appendChild(none);
+      return;
+    }
+
+    results.slice(0, 8).forEach(result => {
+      const row = document.createElement('div');
+      row.className = 'watch-result';
+
+      const thumb = document.createElement('div');
+      thumb.className = 'watch-result-poster';
+      if (result.poster_path) {
+        const img = document.createElement('img');
+        img.src = tmdbPosterUrl(result.poster_path);
+        thumb.appendChild(img);
+      } else {
+        thumb.textContent = '🎬';
+      }
+
+      const textWrap = document.createElement('div');
+      textWrap.className = 'watch-result-text';
+
+      const nameEl = document.createElement('div');
+      nameEl.className = 'watch-result-title';
+      nameEl.textContent = result.title || result.name || '';
+
+      const dateStr = result.release_date || result.first_air_date || '';
+      const metaEl = document.createElement('div');
+      metaEl.className = 'watch-result-meta';
+      metaEl.textContent = [dateStr.slice(0, 4), result.media_type === 'tv' ? 'Series' : 'Movie']
+        .filter(Boolean).join(' · ');
+
+      textWrap.appendChild(nameEl);
+      textWrap.appendChild(metaEl);
+
+      row.appendChild(thumb);
+      row.appendChild(textWrap);
+      row.onclick = () => selectWatchResult(row, result);
+
+      resultsBox.appendChild(row);
+    });
+  } catch (e) {
+    resultsBox.innerHTML = '';
+    const err = document.createElement('p');
+    err.className = 'subtitle';
+    err.style.fontSize = '0.85rem';
+    err.textContent = 'search failed: ' + e.message;
+    resultsBox.appendChild(err);
+  }
+};
+
+function selectWatchResult(row, result) {
+  document.querySelectorAll('#watch-results .watch-result').forEach(el => el.classList.remove('selected'));
+  if (row) row.classList.add('selected');
+
+  const dateStr = result.release_date || result.first_air_date || '';
+
+  selectedWatchResult = {
+    title: result.title || result.name || '',
+    tmdb_id: result.id || null,
+    media_type: result.media_type || null,
+    year: dateStr ? dateStr.slice(0, 4) : null,
+    poster_url: tmdbPosterUrl(result.poster_path),
+    overview: result.overview || null
+  };
+
+  const box = document.getElementById('watch-selected');
+  const poster = document.getElementById('watch-selected-poster');
+  const titleEl = document.getElementById('watch-selected-title');
+  const metaEl = document.getElementById('watch-selected-meta');
+
+  if (poster) {
+    if (selectedWatchResult.poster_url) {
+      poster.src = selectedWatchResult.poster_url;
+      poster.style.display = 'block';
+    } else {
+      poster.removeAttribute('src');
+      poster.style.display = 'none';
+    }
+  }
+
+  if (titleEl) titleEl.textContent = selectedWatchResult.title;
+  if (metaEl) {
+    metaEl.textContent = [
+      selectedWatchResult.year,
+      selectedWatchResult.media_type === 'tv' ? 'Series' : 'Movie'
+    ].filter(Boolean).join(' · ');
+  }
+  if (box) box.style.display = 'flex';
+}
+
+window.submitWatchItem = async () => {
+  const searchInput = document.getElementById('watch-search');
+  const typed = searchInput ? (searchInput.value || '').trim() : '';
+
+  const payload = selectedWatchResult ? Object.assign({}, selectedWatchResult) : { title: typed };
+  if (!payload.title) return alert('Please add a title 🍿');
+
+  const { error } = await supabaseClient.from('watchlist').insert([{
+    title: payload.title,
+    media_type: payload.media_type || null,
+    tmdb_id: payload.tmdb_id || null,
+    year: payload.year || null,
+    poster_url: payload.poster_url || null,
+    overview: payload.overview || null,
+    added_by: currentRole
+  }]);
+
+  if (error) return alert(error.message);
+
+  document.getElementById('addWatchView').classList.remove('open');
+  if (searchInput) searchInput.value = '';
+  const resultsBox = document.getElementById('watch-results');
+  if (resultsBox) resultsBox.innerHTML = '';
+  const selectedBox = document.getElementById('watch-selected');
+  if (selectedBox) selectedBox.style.display = 'none';
+  selectedWatchResult = null;
+
+  loadWatchList();
+  switchTab('watchlist');
 };
