@@ -3,7 +3,7 @@ const SUPABASE_URL = 'https://gessrezpwqmdajkfxgjk.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_NlYgPe1Ii47nl0-anpcnSA_75ae85U9';
 const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-// 1b. NEU: WER IST WER?
+// 1b. WER IST WER?
 // Optional: trage hier eure beiden Login-E-Mails ein (klein geschrieben).
 // Dann kann sich jede Mail NUR noch auf ihrer eigenen Oberfläche anmelden.
 // Bleibt ein Feld leer ('') -> das Konto wird beim ersten Login automatisch
@@ -13,9 +13,13 @@ const ROLE_EMAILS = {
   Sebo: ''
 };
 
+// 1d. NEU: "ANGEMELDET BLEIBEN"
+const REMEMBER_KEY = 'luvu_remember';        // '1' = angemeldet bleiben, '0' = nicht
+const TAB_SESSION_KEY = 'luvu_tab_active';   // lebt nur solange der Tab / die App offen ist
+
 let currentRole = null;
 
-// 1c. NEU: HELFER FÜR ROLLEN
+// 1c. HELFER FÜR ROLLEN
 function normalizeEmail(email) {
   return (email || '').trim().toLowerCase();
 }
@@ -103,7 +107,7 @@ window.setRole = (role) => {
   document.getElementById('btn-sebo').classList.remove('active');
   document.getElementById('btn-' + role.toLowerCase()).classList.add('active');
 
-  // NEU: gemerkte E-Mail dieser Rolle vorausfüllen
+  // gemerkte E-Mail dieser Rolle vorausfüllen
   const emailInput = document.getElementById('email-input');
   const knownMail = emailForRole(role);
   const rememberedMail = localStorage.getItem('luvu_email_' + role);
@@ -115,6 +119,13 @@ window.setRole = (role) => {
       // Mail der anderen Person steht noch drin -> wegräumen
       emailInput.value = '';
     }
+  }
+
+  // NEU: letzte "angemeldet bleiben"-Einstellung wiederherstellen
+  const rememberBox = document.getElementById('remember-me');
+  if (rememberBox) {
+    const savedChoice = localStorage.getItem(REMEMBER_KEY);
+    rememberBox.checked = savedChoice === null ? true : savedChoice === '1';
   }
 
   setLoginMessage(`Logging in as ${role} ${role === 'Aly' ? '👩' : '👨'}`, false);
@@ -149,8 +160,9 @@ function showApp() {
 }
 
 window.logout = async () => {
-  // NEU: Rolle bleibt gemerkt, damit das Gerät die Person wiedererkennt
-  await supabaseClient.auth.signOut();
+  // Rolle bleibt gemerkt, damit das Gerät die Person wiedererkennt
+  sessionStorage.removeItem(TAB_SESSION_KEY);
+  await supabaseClient.auth.signOut({ scope: 'local' });
   window.location.reload();
 };
 
@@ -162,7 +174,7 @@ async function doLogin() {
   if (!currentRole) return setLoginMessage('Please choose who you are first.');
   if (!email || !password) return setLoginMessage('Please enter your email and password.');
 
-  // NEU: Diese Mail gehört zur anderen Person?
+  // Diese Mail gehört zur anderen Person?
   const mailRole = roleFromEmail(email);
   if (mailRole && mailRole !== currentRole) {
     return setLoginMessage(`That email belongs to ${mailRole}. Please pick ${mailRole} above.`);
@@ -172,23 +184,29 @@ async function doLogin() {
   const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
   if (error) return setLoginMessage(error.message);
 
-  // NEU: Konto schon an die andere Rolle gebunden?
+  // Konto schon an die andere Rolle gebunden?
   const boundRole = roleFromUser(data.user);
   if (boundRole && boundRole !== currentRole) {
-    await supabaseClient.auth.signOut();
+    await supabaseClient.auth.signOut({ scope: 'local' });
     return setLoginMessage(`This account is ${boundRole}'s. Please pick ${boundRole} above.`);
   }
 
-  // NEU: Erstes Login dieses Kontos -> Rolle dauerhaft an das Konto binden
+  // Erstes Login dieses Kontos -> Rolle dauerhaft an das Konto binden
   if (!boundRole) {
     const ok = confirm(`This account will be linked to ${currentRole} from now on. Continue?`);
     if (!ok) {
-      await supabaseClient.auth.signOut();
+      await supabaseClient.auth.signOut({ scope: 'local' });
       return setLoginMessage('Login cancelled.', false);
     }
     const { error: metaError } = await supabaseClient.auth.updateUser({ data: { role: currentRole } });
     if (metaError) return setLoginMessage(metaError.message);
   }
+
+  // NEU: "angemeldet bleiben" merken
+  const rememberBox = document.getElementById('remember-me');
+  const keepLoggedIn = rememberBox ? rememberBox.checked : true;
+  localStorage.setItem(REMEMBER_KEY, keepLoggedIn ? '1' : '0');
+  sessionStorage.setItem(TAB_SESSION_KEY, '1');
 
   localStorage.setItem('luvu_email_' + currentRole, email);
   localStorage.setItem('luvu_role', currentRole);
@@ -211,7 +229,7 @@ async function doSignup() {
   const { error } = await supabaseClient.auth.signUp({
     email,
     password,
-    options: { data: { role: currentRole } } // NEU: Rolle direkt mitspeichern
+    options: { data: { role: currentRole } } // Rolle direkt mitspeichern
   });
 
   if (error) {
@@ -222,31 +240,50 @@ async function doSignup() {
   }
 }
 
+// NEU: Start-Logik (Auto-Login nur wenn "angemeldet bleiben" aktiv war)
+async function initAuth() {
+  let session = null;
+  try {
+    const { data } = await supabaseClient.auth.getSession();
+    session = data ? data.session : null;
+  } catch (e) {
+    session = null;
+  }
+  const user = session ? session.user : null;
+
+  const rememberedChoice = localStorage.getItem(REMEMBER_KEY);
+  const tabStillOpen = sessionStorage.getItem(TAB_SESSION_KEY) === '1';
+
+  // Angemeldet, aber "angemeldet bleiben" war aus und die App wurde neu gestartet
+  if (user && rememberedChoice === '0' && !tabStillOpen) {
+    try { await supabaseClient.auth.signOut({ scope: 'local' }); } catch (e) {}
+    session = null;
+  }
+
+  const activeUser = session ? session.user : null;
+  const role = activeUser ? roleFromUser(activeUser) : null;
+
+  // Bekannte Rolle -> direkt in die App
+  if (role && activeUser) {
+    currentRole = role;
+    localStorage.setItem('luvu_role', role);
+    if (activeUser.email) localStorage.setItem('luvu_email_' + role, normalizeEmail(activeUser.email));
+    sessionStorage.setItem(TAB_SESSION_KEY, '1');
+    showApp();
+    return;
+  }
+
+  // Sonst: zuletzt benutzte Rolle auf dem Login-Screen vorwählen
+  const rememberedRole = localStorage.getItem('luvu_role');
+  if (rememberedRole === 'Aly' || rememberedRole === 'Sebo') {
+    setRole(rememberedRole);
+  }
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('login-btn').addEventListener('click', doLogin);
   document.getElementById('signup-btn').addEventListener('click', doSignup);
-
-  // NEU: Beim Öffnen der App prüfen, ob schon jemand angemeldet ist
-  supabaseClient.auth.getSession().then(({ data }) => {
-    const session = data ? data.session : null;
-    const user = session ? session.user : null;
-    const role = user ? roleFromUser(user) : null;
-
-    // Kontos mit bekannter Rolle -> direkt in die App (PWA merkt sich die Person)
-    if (role) {
-      currentRole = role;
-      localStorage.setItem('luvu_role', role);
-      if (user.email) localStorage.setItem('luvu_email_' + role, normalizeEmail(user.email));
-      showApp();
-      return;
-    }
-
-    // Sonst: zuletzt benutzte Rolle auf dem Login-Screen vorwählen
-    const rememberedRole = localStorage.getItem('luvu_role');
-    if (rememberedRole === 'Aly' || rememberedRole === 'Sebo') {
-      setRole(rememberedRole);
-    }
-  });
+  initAuth();
 });
 
 // 6. HELFER: BILD HOCHLADEN
@@ -475,7 +512,7 @@ async function loadOurDay() {
       document.getElementById('dayView').classList.add('open');
     };
 
-    // NEU: Nur noch das Datum im Kasten
+    // Nur noch das Datum im Kasten
     div.innerHTML = `
       <div class="day-date" style="margin-bottom: 0;">📅 ${date}</div>
     `;
