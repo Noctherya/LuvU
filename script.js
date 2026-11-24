@@ -47,6 +47,10 @@ function roleFromUser(user) {
   return roleFromEmail(user ? user.email : '');
 }
 
+function otherRole(role) {
+  return role === 'Aly' ? 'Sebo' : 'Aly';
+}
+
 function setLoginMessage(text, isError = true) {
   const el = document.getElementById('login-message');
   if (!el) return;
@@ -138,7 +142,7 @@ function fillStoredPassword(role) {
   return true;
 }
 
-// 1f. NEU: BESTÄTIGUNGS-DIALOG (im App-Look, ohne HTML/CSS-Änderung)
+// 1f. BESTÄTIGUNGS-DIALOG (im App-Look, ohne HTML/CSS-Änderung)
 function askConfirm(message) {
   return new Promise(resolve => {
     const overlay = document.createElement('div');
@@ -198,7 +202,7 @@ function askConfirm(message) {
   });
 }
 
-// 1g. NEU: KLEINES X ZUM LÖSCHEN
+// 1g. KLEINES X ZUM LÖSCHEN
 function createDeleteX(onClick) {
   const btn = document.createElement('button');
   btn.type = 'button';
@@ -227,7 +231,7 @@ function createDeleteX(onClick) {
   return btn;
 }
 
-// 1h. NEU: LÖSCHEN
+// 1h. LÖSCHEN
 async function deleteUsMoment(id, wrapElement) {
   const confirmed = await askConfirm('Do you really want to delete this photo from your pinboard?');
   if (!confirmed) return;
@@ -260,27 +264,30 @@ async function deleteOurDayEntry(id, entryElement) {
 // 2. TAB WECHSEL
 window.switchTab = (tabName) => {
   document.querySelectorAll('.page').forEach(page => page.classList.remove('active'));
-  
-  document.getElementById('tab-letters').classList.remove('active');
-  document.getElementById('tab-myday').classList.remove('active');
-  document.getElementById('tab-secrets').classList.remove('active');
-  document.getElementById('tab-us').classList.remove('active');
 
-  if (tabName === 'letters') {
-    document.getElementById('page-letters').classList.add('active');
-    document.getElementById('tab-letters').classList.add('active');
-  } else if (tabName === 'myday') {
-    document.getElementById('page-myday').classList.add('active');
-    document.getElementById('tab-myday').classList.add('active');
-  } else if (tabName === 'secrets') {
-    document.getElementById('page-secrets').classList.add('active');
-    document.getElementById('tab-secrets').classList.add('active');
-  } else if (tabName === 'us') {
-    document.getElementById('page-us').classList.add('active');
-    document.getElementById('tab-us').classList.add('active');
+  ['inbox', 'sent', 'myday', 'secrets', 'us'].forEach(name => {
+    const btn = document.getElementById('tab-' + name);
+    if (btn) btn.classList.remove('active');
+  });
+
+  const pageMap = {
+    inbox: 'page-inbox',
+    sent: 'page-sent',
+    myday: 'page-myday',
+    secrets: 'page-secrets',
+    us: 'page-us'
+  };
+
+  const pageId = pageMap[tabName];
+  if (pageId) {
+    const page = document.getElementById(pageId);
+    if (page) page.classList.add('active');
   }
 
-  if (tabName === 'letters') loadLetters();
+  const tabBtn = document.getElementById('tab-' + tabName);
+  if (tabBtn) tabBtn.classList.add('active');
+
+  if (tabName === 'inbox' || tabName === 'sent') loadLetters();
   if (tabName === 'secrets') loadSecrets();
   if (tabName === 'us') loadUs();
   if (tabName === 'myday') loadOurDay();
@@ -359,6 +366,7 @@ function showApp() {
     `;
   } else if (currentRole === 'Sebo') {
     fabMenu.innerHTML = `
+      <button class="fab-item" onclick="openAddModal('letter')">💌 Letter</button>
       <button class="fab-item" onclick="openAddModal('us')">📸 Us Moment</button>
       <button class="fab-item" onclick="openAddModal('ourday')">☀️ Our Day</button>
       <button class="fab-item" onclick="openAddModal('secret')">💌 Secret</button>
@@ -547,9 +555,15 @@ window.submitLetter = async () => {
   const title = document.getElementById('new-letter-title').value;
   const body = document.getElementById('new-letter-body').value;
   if (!title || !body) return alert("Bitte ausfüllen!");
-  const { error } = await supabaseClient.from('letters').insert([{ title, body, sender: 'Aly' }]);
+  // sender = wer gerade schreibt
+  const { error } = await supabaseClient.from('letters').insert([{ title, body, sender: currentRole }]);
   if (error) alert(error.message);
-  else { document.getElementById('addLetterView').classList.remove('open'); loadLetters(); }
+  else {
+    document.getElementById('addLetterView').classList.remove('open');
+    document.getElementById('new-letter-title').value = '';
+    document.getElementById('new-letter-body').value = '';
+    loadLetters();
+  }
 };
 
 window.submitUsMoment = async () => {
@@ -583,52 +597,75 @@ window.submitSecret = async () => {
 };
 
 // 8. LADEN & ANZEIGEN
+// NEU: Briefe werden auf zwei Bereiche verteilt (Inbox / Sent)
 async function loadLetters() {
-  const container = document.getElementById('envelopes');
-  if(!container) return;
   const { data, error } = await supabaseClient.from('letters').select('*').order('created_at', { ascending: false });
   if (error) return;
+
+  const allLetters = data || [];
+  renderLetters('inbox', allLetters.filter(letter => letter.sender !== currentRole));
+  renderLetters('sent', allLetters.filter(letter => letter.sender === currentRole));
+}
+
+function renderLetters(kind, letters) {
+  const isInbox = kind === 'inbox';
+  const container = document.getElementById(isInbox ? 'inboxEnvelopes' : 'sentEnvelopes');
+  const subtitle = document.getElementById(isInbox ? 'inboxSubtitle' : 'sentSubtitle');
+  if (!container) return;
+
+  if (subtitle) {
+    subtitle.textContent = isInbox
+      ? `letters from ${otherRole(currentRole)}`
+      : 'letters you wrote';
+  }
+
   container.innerHTML = '';
-  
-  data.forEach(letter => {
+
+  if (letters.length === 0) {
+    const empty = document.createElement('p');
+    empty.className = 'subtitle';
+    empty.style.marginTop = '40px';
+    empty.textContent = isInbox ? 'no letters yet 💌' : 'nothing written yet 💌';
+    container.appendChild(empty);
+    return;
+  }
+
+  letters.forEach(letter => {
     const wrap = document.createElement('div');
     wrap.className = 'envelope-wrap';
-    
+
+    // Delivered/Read gibt es NUR im "Sent"-Tab und NUR bei Aly
     let badgeHtml = '';
-    if (currentRole === 'Aly') {
-      if (letter.is_read) {
-        badgeHtml = `<div class="envelope-badge read">✓✓ Read</div>`;
-      } else {
-        badgeHtml = `<div class="envelope-badge delivered">✓ Delivered</div>`;
-      }
-    } else if (currentRole === 'Sebo') {
-      if (letter.is_read) {
-        badgeHtml = `<div class="envelope-badge read">✓ Read</div>`;
-      } else {
-        badgeHtml = `<div class="envelope-badge new">✨ New</div>`;
-      }
+    if (!isInbox && currentRole === 'Aly') {
+      badgeHtml = letter.is_read
+        ? `<div class="envelope-badge read">✓✓ Read</div>`
+        : `<div class="envelope-badge delivered">✓ Delivered</div>`;
     }
 
     wrap.onclick = async () => {
       document.getElementById('letterTitle').textContent = letter.title;
       document.getElementById('letterBody').textContent = letter.body;
-      
+
       const statusDiv = document.getElementById('letterStatus');
-      if (currentRole === 'Aly') {
+      if (!isInbox && currentRole === 'Aly') {
         statusDiv.innerHTML = letter.is_read ? '✓✓ Read by Sebo' : '✓ Delivered';
         statusDiv.style.color = letter.is_read ? '#4a90e2' : '#aaa';
+      } else if (isInbox) {
+        statusDiv.innerHTML = `from ${letter.sender} 💌`;
+        statusDiv.style.color = '#5b7ba8';
       } else {
-        statusDiv.innerHTML = ''; 
+        statusDiv.innerHTML = '';
       }
 
       document.getElementById('letterView').classList.add('open');
-      
-      if (currentRole === 'Sebo' && !letter.is_read) {
+
+      // Empfänger markiert eingegangene Briefe als gelesen
+      if (isInbox && !letter.is_read) {
         await supabaseClient.from('letters').update({ is_read: true }).eq('id', letter.id);
         loadLetters();
       }
     };
-    
+
     wrap.innerHTML = `
       <div class="envelope">
         <div class="paper">💌</div>
@@ -700,7 +737,7 @@ async function loadSecrets() {
   }
 }
 
-// NEU: jedes Pinboard-Foto mit X zum Löschen
+// jedes Pinboard-Foto mit X zum Löschen
 async function loadUs() {
   const container = document.getElementById('pinboard');
   if(!container) return;
@@ -726,7 +763,7 @@ async function loadUs() {
   });
 }
 
-// NEU: jeder Our-Day-Eintrag mit X zum Löschen (in der Detail-Ansicht)
+// jeder Our-Day-Eintrag mit X zum Löschen (in der Detail-Ansicht)
 async function loadOurDay() {
   const container = document.getElementById('daysList');
   if(!container) return;
