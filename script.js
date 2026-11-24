@@ -138,6 +138,125 @@ function fillStoredPassword(role) {
   return true;
 }
 
+// 1f. NEU: BESTÄTIGUNGS-DIALOG (im App-Look, ohne HTML/CSS-Änderung)
+function askConfirm(message) {
+  return new Promise(resolve => {
+    const overlay = document.createElement('div');
+    overlay.className = 'letter-view open';
+    overlay.style.zIndex = '10050';
+
+    const card = document.createElement('div');
+    card.className = 'letter-card';
+    card.style.textAlign = 'center';
+    card.style.maxWidth = '340px';
+
+    const title = document.createElement('h2');
+    title.textContent = 'Are you sure?';
+    title.style.textAlign = 'center';
+    title.style.marginBottom = '12px';
+
+    const text = document.createElement('p');
+    text.className = 'letter-body';
+    text.style.fontSize = '1.25rem';
+    text.style.textAlign = 'center';
+    text.textContent = message;
+
+    const row = document.createElement('div');
+    row.style.display = 'flex';
+    row.style.gap = '10px';
+    row.style.marginTop = '28px';
+
+    const noBtn = document.createElement('button');
+    noBtn.className = 'nav-btn';
+    noBtn.style.flex = '1';
+    noBtn.textContent = 'No, keep it';
+
+    const yesBtn = document.createElement('button');
+    yesBtn.className = 'nav-btn';
+    yesBtn.style.flex = '1';
+    yesBtn.style.background = '#d86c8a';
+    yesBtn.style.borderColor = '#d86c8a';
+    yesBtn.style.color = '#fff';
+    yesBtn.textContent = 'Yes, delete';
+
+    const close = (result) => {
+      overlay.remove();
+      resolve(result);
+    };
+
+    noBtn.onclick = () => close(false);
+    yesBtn.onclick = () => close(true);
+    overlay.onclick = (e) => { if (e.target === overlay) close(false); };
+
+    row.appendChild(noBtn);
+    row.appendChild(yesBtn);
+    card.appendChild(title);
+    card.appendChild(text);
+    card.appendChild(row);
+    overlay.appendChild(card);
+    document.body.appendChild(overlay);
+  });
+}
+
+// 1g. NEU: KLEINES X ZUM LÖSCHEN
+function createDeleteX(onClick) {
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.innerHTML = '✕';
+  btn.setAttribute('aria-label', 'Delete');
+  btn.style.position = 'absolute';
+  btn.style.width = '26px';
+  btn.style.height = '26px';
+  btn.style.padding = '0';
+  btn.style.borderRadius = '50%';
+  btn.style.border = '1px solid #c9a9b4';
+  btn.style.background = 'rgba(255, 255, 255, 0.92)';
+  btn.style.color = '#9b6b7a';
+  btn.style.fontSize = '0.7rem';
+  btn.style.lineHeight = '1';
+  btn.style.cursor = 'pointer';
+  btn.style.display = 'flex';
+  btn.style.alignItems = 'center';
+  btn.style.justifyContent = 'center';
+  btn.style.zIndex = '5';
+  btn.style.boxShadow = '0 2px 6px rgba(0,0,0,0.15)';
+  btn.onclick = (e) => {
+    e.stopPropagation();
+    onClick();
+  };
+  return btn;
+}
+
+// 1h. NEU: LÖSCHEN
+async function deleteUsMoment(id, wrapElement) {
+  const confirmed = await askConfirm('Do you really want to delete this photo from your pinboard?');
+  if (!confirmed) return;
+
+  const { error } = await supabaseClient.from('us_moments').delete().eq('id', id);
+  if (error) return alert(error.message);
+
+  if (wrapElement) wrapElement.remove();
+  loadUs();
+}
+
+async function deleteOurDayEntry(id, entryElement) {
+  const confirmed = await askConfirm('Do you really want to delete this moment?');
+  if (!confirmed) return;
+
+  const { error } = await supabaseClient.from('our_day').delete().eq('id', id);
+  if (error) return alert(error.message);
+
+  if (entryElement) entryElement.remove();
+
+  // Detail-Ansicht schließen, wenn nichts mehr übrig ist
+  const remaining = document.querySelectorAll('#dayViewImages .day-img-wrapper').length;
+  if (remaining === 0) {
+    document.getElementById('dayView').classList.remove('open');
+  }
+
+  loadOurDay();
+}
+
 // 2. TAB WECHSEL
 window.switchTab = (tabName) => {
   document.querySelectorAll('.page').forEach(page => page.classList.remove('active'));
@@ -391,7 +510,7 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('login-btn').addEventListener('click', doLogin);
   document.getElementById('signup-btn').addEventListener('click', doSignup);
 
-  // NEU: Häkchen "Passwort merken" reagiert sofort
+  // Häkchen "Passwort merken" reagiert sofort
   const pwBoxEl = document.getElementById('remember-password');
   if (pwBoxEl) {
     pwBoxEl.addEventListener('change', () => {
@@ -581,6 +700,7 @@ async function loadSecrets() {
   }
 }
 
+// NEU: jedes Pinboard-Foto mit X zum Löschen
 async function loadUs() {
   const container = document.getElementById('pinboard');
   if(!container) return;
@@ -588,13 +708,25 @@ async function loadUs() {
   if (error) return;
   container.innerHTML = '';
   data.forEach(moment => {
+    const wrap = document.createElement('div');
+    wrap.style.position = 'relative';
+    wrap.style.display = 'inline-block';
+
     const img = document.createElement('img');
     img.src = moment.image_url;
     img.className = 'pinned-photo';
-    container.appendChild(img);
+
+    const delBtn = createDeleteX(() => deleteUsMoment(moment.id, wrap));
+    delBtn.style.top = '16px';
+    delBtn.style.right = '16px';
+
+    wrap.appendChild(img);
+    wrap.appendChild(delBtn);
+    container.appendChild(wrap);
   });
 }
 
+// NEU: jeder Our-Day-Eintrag mit X zum Löschen (in der Detail-Ansicht)
 async function loadOurDay() {
   const container = document.getElementById('daysList');
   if(!container) return;
@@ -626,11 +758,28 @@ async function loadOurDay() {
       entries.forEach(entry => {
         const imgWrap = document.createElement('div');
         imgWrap.className = 'day-img-wrapper';
-        imgWrap.innerHTML = `
-          <img src="${entry.image_url}" class="day-image-detail">
-          <span class="day-img-sender">${entry.sender}</span>
-          <p class="day-img-text">${entry.text}</p>
-        `;
+        imgWrap.style.position = 'relative';
+
+        const img = document.createElement('img');
+        img.src = entry.image_url;
+        img.className = 'day-image-detail';
+
+        const sender = document.createElement('span');
+        sender.className = 'day-img-sender';
+        sender.textContent = entry.sender;
+
+        const entryText = document.createElement('p');
+        entryText.className = 'day-img-text';
+        entryText.textContent = entry.text;
+
+        const delBtn = createDeleteX(() => deleteOurDayEntry(entry.id, imgWrap));
+        delBtn.style.top = '8px';
+        delBtn.style.right = '8px';
+
+        imgWrap.appendChild(img);
+        imgWrap.appendChild(delBtn);
+        imgWrap.appendChild(sender);
+        imgWrap.appendChild(entryText);
         imagesContainer.appendChild(imgWrap);
       });
 
