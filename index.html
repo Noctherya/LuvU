@@ -114,6 +114,35 @@
       margin-bottom: 15px;
       display: none;
     }
+    .bucket-card.is-done {
+      background: #eef7f0;
+      border-color: #cfe6d5;
+    }
+    .bucket-done-badge {
+      flex: 0 0 auto;
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: #5a8f6b;
+      background: #ffffff;
+      border: 1px solid #cfe6d5;
+      border-radius: 20px;
+      padding: 4px 10px;
+      white-space: nowrap;
+    }
+    .bucket-photos {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+    }
+    .bucket-photos img {
+      width: 100%;
+      aspect-ratio: 1 / 1;
+      object-fit: cover;
+      border-radius: 8px;
+      border: 1px solid #f0d6df;
+      cursor: zoom-in;
+    }
   </style>
   
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -311,11 +340,20 @@
       <div id="bucketViewPlace" style="font-size: 0.9rem; color: #8a9bb0; margin-top: -10px; margin-bottom: 15px; font-style: italic;"></div>
       <img id="bucketViewImage" class="bucket-detail-image" alt="">
       <div class="letter-body" id="bucketViewDetails"></div>
+
+      <button id="bucketDoneBtn" class="nav-btn active" onclick="toggleBucketDone()" style="width: 100%; margin-top: 20px;">✓ mark as done</button>
+
+      <div id="bucketPhotosSection" style="display: none; margin-top: 22px;">
+        <p class="subtitle" style="margin: 0 0 10px;">our memories 💕</p>
+        <div class="bucket-photos" id="bucketPhotos"></div>
+        <input type="file" id="bucket-photo-input" accept="image/*" multiple style="width: 100%; margin-top: 12px; font-family: 'Cormorant Garamond', serif;">
+        <button onclick="submitBucketPhotos()" class="nav-btn active" style="width: 100%; margin-top: 10px;">Add photos</button>
+      </div>
     </div>
   </div>
 
 </div> <!-- Ende von app-screen -->
 
-  <script src="script.js?v=8"></script>
+  <script src="script.js?v=9"></script>
 </body>
 </html>
