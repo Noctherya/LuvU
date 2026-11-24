@@ -14,6 +14,13 @@ function clearFields(...ids) {
   });
 }
 
+const FORM_FIELDS = {
+  addLetterView: ['new-letter-title', 'new-letter-body'],
+  addUsView: ['us-image'],
+  addOurDayView: ['ourday-date', 'ourday-image', 'ourday-text'],
+  addSecretView: ['secret-text']
+};
+
 // 3. TAB WECHSEL
 window.switchTab = (tabName) => {
   document.querySelectorAll('.page').forEach(page => page.classList.remove('active'));
@@ -56,19 +63,19 @@ window.toggleFab = () => {
 window.openAddModal = (type) => {
   toggleFab();
   if (type === 'letter') {
-    clearFields('new-letter-title', 'new-letter-body');
+    clearFields(...FORM_FIELDS.addLetterView);
     document.getElementById('addLetterView').classList.add('open');
   }
   if (type === 'us') {
-    clearFields('us-image');
+    clearFields(...FORM_FIELDS.addUsView);
     document.getElementById('addUsView').classList.add('open');
   }
   if (type === 'ourday') {
-    clearFields('ourday-date', 'ourday-image', 'ourday-text');
+    clearFields(...FORM_FIELDS.addOurDayView);
     document.getElementById('addOurDayView').classList.add('open');
   }
   if (type === 'secret') {
-    clearFields('secret-text');
+    clearFields(...FORM_FIELDS.addSecretView);
     document.getElementById('addSecretView').classList.add('open');
   }
 };
@@ -117,7 +124,7 @@ window.logout = async () => {
   window.location.reload();
 };
 
-// 6. LOGIN
+// 6. LOGIN + FELDER BEIM SCHLIESSEN LEEREN
 document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('login-btn').addEventListener('click', async () => {
     const email = document.getElementById('email-input').value;
@@ -140,6 +147,13 @@ document.addEventListener('DOMContentLoaded', () => {
       document.getElementById('login-message').textContent = 'Check your emails for a confirmation link!';
     }
   });
+
+  Object.keys(FORM_FIELDS).forEach(viewId => {
+    const view = document.getElementById(viewId);
+    if (!view) return;
+    const closeBtn = view.querySelector('.close-btn');
+    if (closeBtn) closeBtn.addEventListener('click', () => clearFields(...FORM_FIELDS[viewId]));
+  });
 });
 
 // 7. HELFER: BILD HOCHLADEN
@@ -149,7 +163,7 @@ async function uploadImage(file) {
   const fileName = `${Date.now()}.${fileExt}`;
   const { data, error } = await supabaseClient.storage.from('images').upload(fileName, file);
   if (error) { alert("Bild-Upload Fehler: " + error.message); return null; }
-  const { data: publicUrl } = supabaseClient.storage.from('images').getPublicUrl(fileName);
+  const { data: publicUrl } = await supabaseClient.storage.from('images').getPublicUrl(fileName);
   return publicUrl.publicUrl;
 }
 
@@ -161,7 +175,7 @@ window.submitLetter = async () => {
   const { error } = await supabaseClient.from('letters').insert([{ title, body, sender: 'Aly' }]);
   if (error) alert(error.message);
   else {
-    clearFields('new-letter-title', 'new-letter-body');
+    clearFields(...FORM_FIELDS.addLetterView);
     document.getElementById('addLetterView').classList.remove('open');
     loadLetters();
   }
@@ -175,7 +189,7 @@ window.submitUsMoment = async () => {
   const { error } = await supabaseClient.from('us_moments').insert([{ image_url: imgUrl, sender: currentRole }]);
   if (error) alert(error.message);
   else {
-    clearFields('us-image');
+    clearFields(...FORM_FIELDS.addUsView);
     document.getElementById('addUsView').classList.remove('open');
     loadUs();
   }
@@ -191,7 +205,7 @@ window.submitOurDay = async () => {
   const { error } = await supabaseClient.from('our_day').insert([{ date, image_url: imgUrl, text, sender: currentRole }]);
   if (error) alert(error.message);
   else {
-    clearFields('ourday-date', 'ourday-image', 'ourday-text');
+    clearFields(...FORM_FIELDS.addOurDayView);
     document.getElementById('addOurDayView').classList.remove('open');
     loadOurDay();
   }
@@ -203,7 +217,7 @@ window.submitSecret = async () => {
   const { error } = await supabaseClient.from('secrets').insert([{ text, sender: currentRole }]);
   if (error) alert(error.message);
   else {
-    clearFields('secret-text');
+    clearFields(...FORM_FIELDS.addSecretView);
     document.getElementById('addSecretView').classList.remove('open');
     loadSecrets();
   }
