@@ -143,6 +143,21 @@
       border: 1px solid #f0d6df;
       cursor: zoom-in;
     }
+    .bucket-delete {
+      -webkit-appearance: none;
+      appearance: none;
+      background: transparent;
+      border: 1px solid #ecc6d1;
+      border-radius: 30px;
+      padding: 9px 14px;
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 0.9rem;
+      color: #d86c8a;
+      cursor: pointer;
+      outline: none;
+      transition: background 0.2s ease;
+    }
+    .bucket-delete:hover { background: #fdeef2; }
   </style>
   
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -341,19 +356,21 @@
       <img id="bucketViewImage" class="bucket-detail-image" alt="">
       <div class="letter-body" id="bucketViewDetails"></div>
 
-      <button id="bucketDoneBtn" class="nav-btn active" onclick="toggleBucketDone()" style="width: 100%; margin-top: 20px;">✓ mark as done</button>
-
-      <div id="bucketPhotosSection" style="display: none; margin-top: 22px;">
-        <p class="subtitle" style="margin: 0 0 10px;">our memories 💕</p>
+      <div id="bucketPhotosSection" style="margin-top: 22px;">
+        <p class="subtitle" style="margin: 0 0 10px;">dont forget your memories:</p>
         <div class="bucket-photos" id="bucketPhotos"></div>
         <input type="file" id="bucket-photo-input" accept="image/*" multiple style="width: 100%; margin-top: 12px; font-family: 'Cormorant Garamond', serif;">
         <button onclick="submitBucketPhotos()" class="nav-btn active" style="width: 100%; margin-top: 10px;">Add photos</button>
       </div>
+
+      <button id="bucketDoneBtn" class="nav-btn active" onclick="toggleBucketDone()" style="width: 100%; margin-top: 20px;">✓ mark as done</button>
+
+      <button class="bucket-delete" onclick="deleteBucketItem()" style="width: 100%; margin-top: 12px;">🗑 delete this idea</button>
     </div>
   </div>
 
 </div> <!-- Ende von app-screen -->
 
-  <script src="script.js?v=9"></script>
+  <script src="script.js?v=10"></script>
 </body>
 </html>
