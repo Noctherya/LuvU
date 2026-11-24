@@ -158,6 +158,121 @@
       transition: background 0.2s ease;
     }
     .bucket-delete:hover { background: #fdeef2; }
+
+    /* Watchlist */
+    .watch-list { display: flex; flex-direction: column; gap: 12px; margin-top: 15px; }
+    .watch-card {
+      display: flex;
+      gap: 14px;
+      background: #fbeef2;
+      border: 1px solid #f0d6df;
+      border-radius: 16px;
+      padding: 12px;
+      text-align: left;
+      box-shadow: 0 4px 10px rgba(155, 107, 122, 0.10);
+    }
+    .watch-poster {
+      flex: 0 0 62px;
+      width: 62px;
+      height: 93px;
+      border-radius: 10px;
+      overflow: hidden;
+      background: #fff;
+      border: 1px solid #f0d6df;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.6rem;
+    }
+    .watch-poster img { width: 100%; height: 100%; object-fit: cover; }
+    .watch-info { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+    .watch-title {
+      font-family: 'Caveat', cursive;
+      font-size: 1.35rem;
+      color: #9b6b7a;
+      line-height: 1.15;
+    }
+    .watch-meta {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 0.85rem;
+      color: #8a9bb0;
+      font-style: italic;
+      margin-top: 2px;
+    }
+    .watch-ratings { margin-top: 8px; display: flex; flex-direction: column; gap: 2px; }
+    .watch-rating-row { display: flex; align-items: center; gap: 8px; }
+    .watch-name {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 0.85rem;
+      color: #7a6a72;
+      width: 40px;
+    }
+    .watch-stars { font-size: 1.05rem; letter-spacing: 2px; color: #d8c2ca; }
+    .watch-star.filled { color: #d86c8a; }
+    .watch-star.clickable { cursor: pointer; }
+    .watch-card.not-watched .watch-stars { opacity: 0.45; }
+    .watch-watched-btn {
+      margin-top: 10px;
+      align-self: flex-start;
+      -webkit-appearance: none;
+      appearance: none;
+      background: transparent;
+      border: 1px solid #ecc6d1;
+      border-radius: 30px;
+      padding: 6px 12px;
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 0.85rem;
+      color: #9b6b7a;
+      cursor: pointer;
+      outline: none;
+    }
+    .watch-watched-btn.is-on { background: #eef7f0; border-color: #cfe6d5; color: #5a8f6b; }
+    .watch-results {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-top: 12px;
+      max-height: 220px;
+      overflow-y: auto;
+    }
+    .watch-result {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      padding: 8px;
+      border: 1px solid #f0d6df;
+      border-radius: 12px;
+      background: #fff;
+      cursor: pointer;
+      text-align: left;
+    }
+    .watch-result.selected { border-color: #d86c8a; background: #fff5f7; }
+    .watch-result-poster {
+      flex: 0 0 36px;
+      width: 36px;
+      height: 54px;
+      border-radius: 6px;
+      overflow: hidden;
+      background: #fdf5f7;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1rem;
+    }
+    .watch-result-poster img { width: 100%; height: 100%; object-fit: cover; }
+    .watch-result-text { flex: 1; min-width: 0; }
+    .watch-result-title {
+      font-family: 'Caveat', cursive;
+      font-size: 1.15rem;
+      color: #9b6b7a;
+      line-height: 1.1;
+    }
+    .watch-result-meta {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 0.8rem;
+      color: #8a9bb0;
+      font-style: italic;
+    }
   </style>
   
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -204,6 +319,7 @@
       <button class="more-item" data-tab="secrets" onclick="switchTab('secrets')">✨ Secrets</button>
       <button class="more-item" data-tab="us" onclick="switchTab('us')">📸 Us</button>
       <button class="more-item" data-tab="bucketlist" onclick="switchTab('bucketlist')">🪣 Bucket List</button>
+      <button class="more-item" data-tab="watchlist" onclick="switchTab('watchlist')">🍿 Watchlist</button>
     </div>
   </div>
 
@@ -248,6 +364,12 @@
       <button class="nav-btn" data-place="Hamburg" onclick="filterBucketList('Hamburg')">📍 Hamburg</button>
     </div>
     <div class="bucket-list" id="bucketList"></div>
+  </div>
+
+  <div id="page-watchlist" class="page">
+    <h1>watchlist 🍿</h1>
+    <p class="subtitle">movies &amp; shows for us</p>
+    <div class="watch-list" id="watchList"></div>
   </div>
 
   <!-- FAB -->
@@ -369,8 +491,30 @@
     </div>
   </div>
 
+  <!-- Watchlist: neuen Titel hinzufügen -->
+  <div class="letter-view" id="addWatchView">
+    <div class="letter-card">
+      <button class="close-btn" onclick="document.getElementById('addWatchView').classList.remove('open')">✕</button>
+      <h2>Add to watchlist 🍿</h2>
+      <input type="text" id="watch-search" placeholder="Search a title..." style="width: 100%; padding: 10px; border: 1px solid #c9a9b4; border-radius: 8px; font-family: 'Cormorant Garamond', serif; font-size: 1rem;">
+      <button onclick="searchWatchTitle()" class="nav-btn active" style="width: 100%; margin-top: 10px;">🔍 Search</button>
+      <div class="watch-results" id="watch-results"></div>
+      <div id="watch-selected" style="display: none; align-items: center; gap: 10px; margin-top: 15px;">
+        <img id="watch-selected-poster" alt="" style="width: 48px; border-radius: 6px; border: 1px solid #f0d6df;">
+        <div style="text-align: left; min-width: 0;">
+          <div id="watch-selected-title" style="font-family: 'Caveat', cursive; font-size: 1.3rem; color: #9b6b7a; line-height: 1.1;"></div>
+          <div id="watch-selected-meta" style="font-family: 'Cormorant Garamond', serif; font-size: 0.85rem; color: #8a9bb0; font-style: italic;"></div>
+        </div>
+      </div>
+      <button onclick="submitWatchItem()" class="nav-btn active" style="width: 100%; margin-top: 20px;">Add to watchlist</button>
+      <p style="font-family: 'Cormorant Garamond', serif; font-size: 0.75rem; color: #b9a8ae; margin-top: 14px; text-align: center;">
+        title data &amp; posters from TMDB
+      </p>
+    </div>
+  </div>
+
 </div> <!-- Ende von app-screen -->
 
-  <script src="script.js?v=10"></script>
+  <script src="script.js?v=11"></script>
 </body>
 </html>
