@@ -42,7 +42,8 @@
 <div id="app-screen" class="app" style="display: none;">
   
   <div class="nav-tabs">
-    <button id="tab-letters" class="nav-btn active" onclick="switchTab('letters')">💌 Letters</button>
+    <button id="tab-inbox" class="nav-btn active" onclick="switchTab('inbox')">📥 Inbox</button>
+    <button id="tab-sent" class="nav-btn" onclick="switchTab('sent')">📤 Sent</button>
     <button id="tab-myday" class="nav-btn" onclick="switchTab('myday')">☀️ Our Day</button>
     <button id="tab-secrets" class="nav-btn" onclick="switchTab('secrets')">✨ Secrets</button>
     <button id="tab-us" class="nav-btn" onclick="switchTab('us')">📸 Us</button>
@@ -50,10 +51,16 @@
   </div>
 
   <!-- SEITEN -->
-  <div id="page-letters" class="page active">
-    <h1>for you 💌</h1>
-    <p class="subtitle">a few letters from me</p>
-    <div class="envelopes" id="envelopes"></div>
+  <div id="page-inbox" class="page active">
+    <h1>inbox 💌</h1>
+    <p class="subtitle" id="inboxSubtitle">letters for you</p>
+    <div class="envelopes" id="inboxEnvelopes"></div>
+  </div>
+
+  <div id="page-sent" class="page">
+    <h1>sent 💌</h1>
+    <p class="subtitle" id="sentSubtitle">letters you wrote</p>
+    <div class="envelopes" id="sentEnvelopes"></div>
   </div>
 
   <div id="page-myday" class="page">
