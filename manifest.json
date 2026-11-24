@@ -1,7 +1,7 @@
 {
   "name": "LuvU",
   "short_name": "LuvU",
-  "start_url": "/LuvU/?v=3",
+  "start_url": "/LuvU/?v=13",
   "scope": "/LuvU/",
   "display": "standalone",
   "background_color": "#f7f0e8",
