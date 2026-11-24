@@ -28,7 +28,7 @@
       gap: 2px;
       text-align: left;
     }
-    .more-menu.open { display: flex; animation: fadeIn 0.25s ease; }
+    .more-menu.is-open { display: flex; animation: fadeIn 0.25s ease; }
     .more-item {
       -webkit-appearance: none;
       appearance: none;
@@ -46,12 +46,9 @@
     }
     .more-item:hover { background: #fdf5f7; }
     .more-item.active { background: #fbeef2; font-weight: 600; }
-    .more-item.logout {
-      margin-top: 4px;
-      border-top: 1px solid #f4dde3;
-      border-radius: 0 0 10px 10px;
-      color: #d86c8a;
-    }
+
+    /* Logout-Pille in der Leiste */
+    .nav-btn.logout-btn { color: #d86c8a; border-color: #ecc6d1; }
   </style>
   
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -90,13 +87,13 @@
     <div class="nav-tabs">
       <button id="tab-inbox" class="nav-btn active" onclick="switchTab('inbox')">📥 Inbox</button>
       <button id="tab-sent" class="nav-btn" onclick="switchTab('sent')">📤 Sent</button>
-      <button id="tab-more" class="nav-btn" onclick="toggleMoreMenu(event)">⋯ More</button>
+      <button id="tab-more" class="nav-btn">⋯ More</button>
+      <button class="nav-btn logout-btn" onclick="logout()">🚪 Logout</button>
     </div>
     <div class="more-menu" id="more-menu">
       <button class="more-item" data-tab="myday" onclick="switchTab('myday')">☀️ Our Day</button>
       <button class="more-item" data-tab="secrets" onclick="switchTab('secrets')">✨ Secrets</button>
       <button class="more-item" data-tab="us" onclick="switchTab('us')">📸 Us</button>
-      <button class="more-item logout" onclick="logout()">🚪 Logout</button>
     </div>
   </div>
 
@@ -214,6 +211,6 @@
 
 </div> <!-- Ende von app-screen -->
 
-  <script src="script.js"></script>
+  <script src="script.js?v=5"></script>
 </body>
 </html>
