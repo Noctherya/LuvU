@@ -49,6 +49,71 @@
 
     /* Logout-Pille in der Leiste */
     .nav-btn.logout-btn { color: #d86c8a; border-color: #ecc6d1; }
+
+    /* Bucket List */
+    .bucket-filter {
+      display: flex;
+      gap: 8px;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-bottom: 8px;
+    }
+    .bucket-filter .nav-btn { font-size: 0.85rem; padding: 7px 12px; }
+    .bucket-list { display: flex; flex-direction: column; gap: 12px; margin-top: 15px; }
+    .bucket-card {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      background: #fbeef2;
+      border: 1px solid #f0d6df;
+      border-radius: 16px;
+      padding: 12px;
+      text-align: left;
+      cursor: pointer;
+      box-shadow: 0 4px 10px rgba(155, 107, 122, 0.10);
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .bucket-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 20px rgba(155, 107, 122, 0.18);
+    }
+    .bucket-thumb {
+      flex: 0 0 64px;
+      width: 64px;
+      height: 64px;
+      border-radius: 12px;
+      overflow: hidden;
+      background: #fff;
+      border: 1px solid #f0d6df;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .bucket-thumb img { width: 100%; height: 100%; object-fit: cover; }
+    .bucket-thumb-emoji { font-size: 1.9rem; }
+    .bucket-text { flex: 1; min-width: 0; }
+    .bucket-title {
+      font-family: 'Caveat', cursive;
+      font-size: 1.4rem;
+      color: #9b6b7a;
+      line-height: 1.15;
+    }
+    .bucket-place {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 0.9rem;
+      color: #8a9bb0;
+      font-style: italic;
+      margin-top: 2px;
+    }
+    .bucket-detail-image {
+      width: 100%;
+      max-height: 240px;
+      object-fit: cover;
+      border-radius: 10px;
+      border: 1px solid #f0d6df;
+      margin-bottom: 15px;
+      display: none;
+    }
   </style>
   
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -94,6 +159,7 @@
       <button class="more-item" data-tab="myday" onclick="switchTab('myday')">☀️ Our Day</button>
       <button class="more-item" data-tab="secrets" onclick="switchTab('secrets')">✨ Secrets</button>
       <button class="more-item" data-tab="us" onclick="switchTab('us')">📸 Us</button>
+      <button class="more-item" data-tab="bucketlist" onclick="switchTab('bucketlist')">🪣 Bucket List</button>
     </div>
   </div>
 
@@ -127,6 +193,17 @@
     <div class="pinboard-container">
       <div class="pinboard" id="pinboard"></div>
     </div>
+  </div>
+
+  <div id="page-bucketlist" class="page">
+    <h1>bucket list 🪣</h1>
+    <p class="subtitle">things we want to do together</p>
+    <div class="bucket-filter" id="bucketFilter">
+      <button class="nav-btn active" data-place="all" onclick="filterBucketList('all')">✨ All</button>
+      <button class="nav-btn" data-place="Karlsruhe" onclick="filterBucketList('Karlsruhe')">📍 Karlsruhe</button>
+      <button class="nav-btn" data-place="Hamburg" onclick="filterBucketList('Hamburg')">📍 Hamburg</button>
+    </div>
+    <div class="bucket-list" id="bucketList"></div>
   </div>
 
   <!-- FAB -->
@@ -209,8 +286,36 @@
     </div>
   </div>
 
+  <!-- Bucket List: neue Idee -->
+  <div class="letter-view" id="addBucketView">
+    <div class="letter-card">
+      <button class="close-btn" onclick="document.getElementById('addBucketView').classList.remove('open')">✕</button>
+      <h2>New idea 🪣</h2>
+      <label style="display: block; font-family: 'Cormorant Garamond', serif; font-size: 0.85rem; color: #9b6b7a; margin-bottom: 5px;">Picture (optional)</label>
+      <input type="file" id="bucket-image" accept="image/*" style="width: 100%; margin-bottom: 15px; font-family: 'Cormorant Garamond', serif;">
+      <input type="text" id="bucket-title" placeholder="Activity" style="width: 100%; padding: 10px; margin-bottom: 15px; border: 1px solid #c9a9b4; border-radius: 8px; font-family: 'Cormorant Garamond', serif; font-size: 1rem;">
+      <textarea id="bucket-details" placeholder="Details..." style="width: 100%; height: 110px; padding: 10px; margin-bottom: 15px; border: 1px solid #c9a9b4; border-radius: 8px; font-family: 'Cormorant Garamond', serif; font-size: 1rem;"></textarea>
+      <select id="bucket-place" style="width: 100%; padding: 10px; margin-bottom: 15px; border: 1px solid #c9a9b4; border-radius: 8px; font-family: 'Cormorant Garamond', serif; font-size: 1rem; color: #4a4048; background: #fff;">
+        <option value="Karlsruhe">📍 Karlsruhe</option>
+        <option value="Hamburg">📍 Hamburg</option>
+      </select>
+      <button onclick="submitBucketItem()" class="nav-btn active" style="width: 100%;">Add to bucket list</button>
+    </div>
+  </div>
+
+  <!-- Bucket List: Detailansicht -->
+  <div class="letter-view" id="bucketView">
+    <div class="letter-card">
+      <button class="close-btn" onclick="document.getElementById('bucketView').classList.remove('open')">✕</button>
+      <h2 id="bucketViewTitle"></h2>
+      <div id="bucketViewPlace" style="font-size: 0.9rem; color: #8a9bb0; margin-top: -10px; margin-bottom: 15px; font-style: italic;"></div>
+      <img id="bucketViewImage" class="bucket-detail-image" alt="">
+      <div class="letter-body" id="bucketViewDetails"></div>
+    </div>
+  </div>
+
 </div> <!-- Ende von app-screen -->
 
-  <script src="script.js?v=7"></script>
+  <script src="script.js?v=8"></script>
 </body>
 </html>
